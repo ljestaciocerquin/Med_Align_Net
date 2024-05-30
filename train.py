@@ -117,34 +117,37 @@ def main(args):
     val_scheme   = args.val_scheme or Split.VALID
     print('Train', train_scheme)
     print('Val', val_scheme)
-    train_dataset = Data(args.dataset, rounds=args.round*args.batch_size, scheme=train_scheme)
-    val_dataset   = Data(args.dataset, scheme=val_scheme)
-    data_type     = 'liver' if 'liver' in args.dataset else 'brain'
-    ckp_freq = int(args.checkpoint_frequency * args.round)
+    
+    train_dataset  = Data(args.dataset, rounds=args.round*args.batch_size, scheme=train_scheme)
+    val_dataset    = Data(args.dataset, scheme=val_scheme)
+    data_type      = 'liver' if 'liver' in args.dataset else 'brain'
+    ckp_freq       = int(args.checkpoint_frequency * args.round)
     args.data_type = data_type
 
     # get time and generate run_id
-    dt = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))) # HK time
+    dt     = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))) # HK time
     run_id = '_'.join([dt.strftime('%b%d-%H%M%S'),
                        str(data_type)[:2] + str(train_scheme), # what dataset to use
-                       args.base_network+'x'+str(args.n_cascades), # base network and number of cascades
+                       args.base_network + 'x' + str(args.n_cascades), # base network and number of cascades
                        args.name,
-                       args.masked + (f'thr{args.mask_threshold}' + args.soft_transform+'bnd'+str(args.boundary_thickness)+'st{}'.format(1+args.use_2nd_flow) + ('bf' if args.use_bilateral and args.use_2nd_flow else '')
+                       args.masked + (f'thr{args.mask_threshold}' + args.soft_transform + 'bnd' + str(args.boundary_thickness) + 'st{}'.format(1+args.use_2nd_flow) + ('bf' if args.use_bilateral and args.use_2nd_flow else '')
                        if args.mask_threshold>0 and args.masked in ['soft', 'hard']
                        else ''), # params for transforming jacobian
-                       'vp'+str(args.vol_preserve)+'st'+args.size_type if args.vol_preserve>0 else '' # params for volume preserving loss
+                       'vp' + str(args.vol_preserve) + 'st' + args.size_type if args.vol_preserve>0 else '' # params for volume preserving loss
                        ])
     print('Current Run ID:', run_id)
+    
+    
     # mkdirs for log and Tensorboard
     if not args.debug:
         if not args.ctt:
             print("Creating log dir")
             log_dir = os.path.join('./logs', data_type, args.base_network, 'hyp' if args.hyper_vp else str(train_scheme), run_id)
             os.path.exists(log_dir) or os.makedirs(log_dir)
-            if not os.path.exists(log_dir+'/model_wts/'):
+            if not os.path.exists(log_dir + '/model_wts/'):
                 print("Creating ckp dir", os.path.abspath(log_dir))
-                os.makedirs(log_dir+'/model_wts/')
-                ckp_dir = log_dir+'/model_wts/'
+                os.makedirs(log_dir + '/model_wts/')
+                ckp_dir = log_dir   + '/model_wts/'
         else:
             log_dir = args.ctt
             print("Using log dir", os.path.abspath(log_dir))
@@ -154,7 +157,7 @@ def main(args):
                     run_id = f.name
                     break
                 f = f.parent
-            ckp_dir = log_dir+'/model_wts/'
+            ckp_dir = log_dir + '/model_wts/'
             ## Directly load the args from the log_dir
             cfg = read_cfg(log_dir)
             if cfg.get('log_dir', None) is not None:
@@ -166,7 +169,7 @@ def main(args):
                     setattr(args, k, v)
 
         # record args for reuse in evaluation
-        with open(log_dir+'/args.txt', 'a') as f:
+        with open(log_dir + '/args.txt', 'a') as f:
             from pprint import pprint
             pprint(args.__dict__, f)
             command = "python train.py " + (" ".join(["--{} {}".format(k, v) for k, v in args.__dict__.items() if v])
@@ -174,9 +177,9 @@ def main(args):
             print("\nRunning command:\n" + command, file=f)
             # also save the code to the log dir
             import shutil
-            shutil.copyfile(os.path.realpath(__file__), log_dir+'/training_code.py')
+            shutil.copyfile(os.path.realpath(__file__), log_dir + '/training_code.py')
         args.log_dir = log_dir
-        args.run_id = run_id
+        args.run_id  = run_id
         print('using run_id:', run_id)
 
         if args.use_wandb:
@@ -188,26 +191,27 @@ def main(args):
             name = '_'.join(name)
             # hash run_id into a short string
             id_for_wandb = hashlib.md5(run_id.encode()).hexdigest()[:8]
-            tags = run_id.split('_') + [data_type, args.base_network, str(train_scheme)]
+            tags         = run_id.split('_') + [data_type, args.base_network, str(train_scheme)]
             # rm empty tags
             tags = [t for t in tags if t]
             wandb.init(name=name, notes=run_id, sync_tensorboard=True, config=cfg, save_code=True, dir=pa(log_dir).parent,
                        resume='allow' if not args.ctt else 'must', id=id_for_wandb, tags=tags)
+        
         # print in green the following message
         print('\033[92m')
-        writer = SummaryWriter(log_dir=log_dir)
+        #----------> writer = SummaryWriter(log_dir=log_dir)
         print('\033[0m')
 
     # read config
     with open(args.dataset, 'r') as f:
-        cfg = json.load(f)
+        cfg        = json.load(f)
         image_size = cfg.get('image_size', [128, 128, 128])
-        segmentation_class_value=cfg.get('segmentation_class_value', {'unknown':1})
+        segmentation_class_value = cfg.get('segmentation_class_value', {'unknown':1})
 
     in_channels = args.in_channel
-    model = RecursiveCascadeNetwork(n_cascades=args.n_cascades, im_size=image_size, base_network=args.base_network,
-                                    in_channels=in_channels, use_affine=args.use_affine, hyper_net=args.hyper_vp,
-                                    ).cuda()
+    model       = RecursiveCascadeNetwork(n_cascades=args.n_cascades, im_size=image_size, base_network=args.base_network,
+                                          in_channels=in_channels, use_affine=args.use_affine, hyper_net=args.hyper_vp,
+                                         ).cuda()
 
     # compute model size
     total_params = sum(p.nelement()*p.element_size() for p in model.parameters())
@@ -225,27 +229,27 @@ def main(args):
     trainable_params += list(model.reconstruction.parameters())
 
     # NOTE build optimizer
-    lr = args.lr
+    lr    = args.lr
     optim = Adam(trainable_params, lr=lr, weight_decay=1e-4)
     if args.lr_scheduler == 'step':
         scheduler = StepLR(optimizer=optim, step_size=10, gamma=0.96)
     elif args.lr_scheduler == 'linear':
-        min_lr = 1e-6
+        min_lr    = 1e-6
         scheduler = LambdaLR(optimizer=optim, lr_lambda=lambda epoch: min_lr + (lr - min_lr) * (1 - epoch / args.epochs), last_epoch= start_epoch-1)
 
     # NOTE load checkpoint
     start_epoch = 0
-    start_iter = 0
+    start_iter  = 0
     if args.checkpoint or args.ctt:
         ckp = args.checkpoint or ckp_dir
         if os.path.isdir(ckp):
             ckp = load_model_from_dir(ckp, model)
         else: load_model(torch.load(os.path.join(ckp)), model)
         print("Loaded checkpoint from {}".format(ckp))
-        if args.continue_training or args.ctt:
-            state = torch.load(ckp)
+        if args.continue_training or args.ctt: 
+            state       = torch.load(ckp)
             start_epoch = state['epoch']
-            start_iter = state['global_iter'] + 1
+            start_iter  = state['global_iter'] + 1
             optim_state = torch.load(pa(ckp).parent/'optim.pth')
             optim.load_state_dict(optim_state['optimizer_state_dict'])
             scheduler.load_state_dict(optim_state['scheduler_state_dict'])
@@ -255,42 +259,45 @@ def main(args):
     torch.manual_seed(3749)
     if dist.is_initialized():
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True)
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, sampler=train_sampler)
+        train_loader  = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, sampler=train_sampler)
     else:
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, shuffle=True)
+        train_loader  = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, shuffle=True)
     # val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=num_worker, shuffle=False)
 
     train_loss_log = []
-    reg_loss_log = []
-    val_loss_log = []
-    max_seg = max(segmentation_class_value.values())
+    reg_loss_log   = []
+    val_loss_log   = []
+    max_seg        = max(segmentation_class_value.values())
 
     # use cudnn.benchmark for deterministic training
     torch.backends.cudnn.benchmark = True
-    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.enabled   = True
+    
     for epoch in range(start_epoch, args.epochs):
         print(f"-----Epoch {epoch+1} / {args.epochs}-----")
         train_epoch_loss = 0
-        train_reg_loss = 0
-        vis_batch = []
-        t0 = default_timer()
-        st_t = default_timer()
+        train_reg_loss   = 0
+        vis_batch        = []
+        t0               = default_timer()
+        st_t             = default_timer()
+        
         # SECTION training
         for iteration, data in enumerate(train_loader, start=start_iter):
-            if iteration>=len(train_loader): break
-            log_scalars = {}
-            log_list = {}
-            loss_dict = {}
-            img_dict = {}
-            loss = 0
+            if iteration >= len(train_loader): break
+            log_scalars   = {}
+            log_list      = {}
+            loss_dict     = {}
+            img_dict      = {}
+            loss          = 0
+            
             model.train()
-            iteration += 1
-            t1 = default_timer()
+            iteration    += 1
+            t1            = default_timer()
             optim.zero_grad()
             fixed, moving = data['voxel1'], data['voxel2']
-            fixed = fixed.cuda()
-            moving = moving.cuda()
+            fixed         = fixed.cuda()
+            moving        = moving.cuda()
 
             # do some augmentation
             seg1 = data['segmentation1'].cuda()
@@ -325,31 +332,31 @@ def main(args):
             # NOTE affine loss
             if args.use_affine:
                 ortho_factor, det_factor = args.ortho, args.det
-                A = affine_params['theta'][..., :3, :3]
-                ort = ortho_factor * ortho_loss(A)
-                det = det_factor * det_loss(A)
-                ort, det = reduce_mean(ort), reduce_mean(det)
-                loss_dict['ortho'] = ort.item()
-                loss_dict['det'] = det.item()
-                loss = loss + ort + det
+                A                        = affine_params['theta'][..., :3, :3]
+                ort                      = ortho_factor * ortho_loss(A)
+                det                      = det_factor   * det_loss(A)
+                ort, det                 = reduce_mean(ort), reduce_mean(det)
+                loss_dict['ortho']       = ort.item()
+                loss_dict['det']         = det.item()
+                loss                     = loss + ort + det
 
             with torch.no_grad():
-                w_seg2 = model.reconstruction(seg2.float(), agg_flows[-1])
-                warped_tseg = w_seg2>1.5
-                w_oseg = w_seg2>0.5
+                w_seg2      = model.reconstruction(seg2.float(), agg_flows[-1])
+                warped_tseg = w_seg2 > 1.5
+                w_oseg      = w_seg2 > 0.5
 
                 ######### logging #########
                 # add scalar tumor/ratio
                 if (seg2>1.5).sum().item() > 0:
-                    t_c = (warped_tseg.sum(dim=(1,2,3,4)).float() / (seg2 > 1.5).sum(dim=(1,2,3,4)).float())
-                    t_c_nn = t_c[t_c.isnan()==False]
+                    t_c                         = (warped_tseg.sum(dim=(1,2,3,4)).float() / (seg2 > 1.5).sum(dim=(1,2,3,4)).float())
+                    t_c_nn                      = t_c[t_c.isnan()==False]
                     log_scalars['tumor_change'] = t_c_nn.mean().item()
-                    o_c = (w_seg2>0.5).sum(dim=(1,2,3,4)).float() / (seg2 > 0.5).sum(dim=(1,2,3,4)).float()
-                    o_c_nn = o_c[t_c.isnan()==False]
+                    o_c                         = (w_seg2>0.5).sum(dim=(1,2,3,4)).float() / (seg2 > 0.5).sum(dim=(1,2,3,4)).float()
+                    o_c_nn                      = o_c[t_c.isnan()==False]
                     log_scalars['organ_change'] = o_c_nn.mean().item()
-                    log_scalars['to_ratio'] = torch.where(t_c_nn/o_c_nn >1, t_c_nn/o_c_nn, o_c_nn/t_c_nn).mean().item()
+                    log_scalars['to_ratio']     = torch.where(t_c_nn/o_c_nn >1, t_c_nn/o_c_nn, o_c_nn/t_c_nn).mean().item()
                 # add scalar dice_organ
-                dice_organ, _ = dice_jaccard(w_seg2>0.5, seg1>0.5)
+                dice_organ, _             = dice_jaccard(w_seg2 > 0.5, seg1 > 0.5)
                 log_scalars['dice_organ'] = dice_organ.mean().item()
 
             # default masks used for VP loss
@@ -357,14 +364,14 @@ def main(args):
             # vp_seg_mask: the mask where the ratio is kept, used for VP loss
             sims = []
             if not args.masked:
-                sim = sim_loss(fixed, warped[-1])
+                sim         = sim_loss(fixed, warped[-1])
                 mask_moving = seg2
                 vp_seg_mask = w_seg2
             else:
                 mask_moving = input_seg
                 with torch.no_grad():
                     warped_mask = model.reconstruction(input_seg.float(), agg_flows[-1])
-                vp_seg_mask = warped_mask
+                vp_seg_mask  = warped_mask
                 if args.masked == 'soft':
                     # soft mask * sim loss per pixel, soft mask should be computed from stage1 model
                     with torch.no_grad():
@@ -372,8 +379,8 @@ def main(args):
 
                     if args.hyper_vp:
                         hyp_compute_mask = (1-warped_soft_mask)**(hyp_param/args.vol_preserve)[...,None,None,None]
-                        sims = sim_loss(fixed, warped[-1], hyp_compute_mask, return_mean=False)
-                        sim = sims.mean()
+                        sims             = sim_loss(fixed, warped[-1], hyp_compute_mask, return_mean=False)
+                        sim              = sims.mean()
                     else:
                         sim = sim_loss(fixed, warped[-1], 1-warped_soft_mask)
                     vp_seg_mask = warped_mask
@@ -381,7 +388,7 @@ def main(args):
                     with torch.no_grad():
                         warped_hard_mask = model.reconstruction(compute_mask.float(), agg_flows[-1]) > 0.5
                     sims = masked_sim_loss(fixed, warped[-1], warped_hard_mask)
-                    sim = sims.mean()
+                    sim  = sims.mean()
                     vp_seg_mask = warped_mask
             loss = loss + sim
 
@@ -403,12 +410,12 @@ def main(args):
                     # the vp_loc is a weighted mask that is calculated from the ratio of the tumor region
                     vp_tum_loc = warped_soft_mask # B, C, S, H, W
                 # calculate the TSR: tumor size ratio
-                bs = agg_flows[-1].shape[0]
+                bs    = agg_flows[-1].shape[0]
                 ratio = (vp_seg_mask>0.5).view(bs,-1).sum(1) / (mask_moving>0.5).view(bs, -1).sum(1)
-                ratio=ratio.view(-1,1,1,1)
+                ratio = ratio.view(-1,1,1,1)
 
                 # log
-                img_dict['vp_loc'] = visualize_3d(vp_tum_loc[0,0]).cpu()
+                img_dict['vp_loc']          = visualize_3d(vp_tum_loc[0,0]).cpu()
                 img_dict['vp_loc_on_wseg2'] = visualize_3d(draw_seg_on_vol(vp_tum_loc[0,0],
                                                                             w_seg2[0,0].round().long(),
                                                                             to_onehot=True, inter_dst=5), inter_dst=1).cpu()
@@ -416,15 +423,15 @@ def main(args):
 
                 # calculate the vp loss based on change of TSR
                 ## Notice!! It should be *ratio instead of /ratio
-                k_sz = torch.zeros(1).cuda()
+                k_sz     = torch.zeros(1).cuda()
                 det_flow = (jacobian_det(agg_flows[-1], return_det=True).abs()*ratio).clamp(min=1/3, max=3)
-                vp_mask = F.interpolate(vp_tum_loc.float(), size=det_flow.shape[-3:], mode='trilinear', align_corners=False).float().squeeze() # B, S, H, W
+                vp_mask  = F.interpolate(vp_tum_loc.float(), size=det_flow.shape[-3:], mode='trilinear', align_corners=False).float().squeeze() # B, S, H, W
                 ## normalize by single voxel
                 adet_flow = torch.where(det_flow>1, det_flow, (1/det_flow))
                 if args.hyper_vp:
                     adet_flow = adet_flow*(hyp_param[:,0,None,None,None])
                 k_sz_voxel = (adet_flow*vp_mask).sum()/vp_mask.sum()
-                k_szs = (adet_flow*vp_mask).sum(dim=(-1,-2,-3)) / vp_mask.sum(dim=(-1,-2,-3))
+                k_szs      = (adet_flow*vp_mask).sum(dim=(-1,-2,-3)) / vp_mask.sum(dim=(-1,-2,-3))
                 ## if normalize by each img in batch: check norm_img()
 
                 # add vp_loss to loss
@@ -439,10 +446,10 @@ def main(args):
                     vp_seg = F.interpolate(w_seg2, size=det_flow.shape[-3:], mode='trilinear', align_corners=False).float().squeeze().round().long() # B, S, H, W
                     img_dict['det_flow'] = visualize_3d(det_flow[0]).cpu()
                 # log imgs
-                img_dict['vp_det_flow'] = visualize_3d(adet_flow[0]).cpu()
+                img_dict['vp_det_flow']       = visualize_3d(adet_flow[0]).cpu()
                 img_dict['vpdetflow_on_seg2'] = visualize_3d(draw_seg_on_vol(adet_flow[0], vp_seg[0], to_onehot=True, inter_dst=5), inter_dst=1).cpu()
                 # log scalars
-                log_scalars['k_sz_voxel'] = k_sz_voxel.item()
+                log_scalars['k_sz_voxel']      = k_sz_voxel.item()
                 loss_dict['vol_preserve_loss'] = k_sz_orig.item()
 
             if loss.isnan().any():
@@ -452,20 +459,20 @@ def main(args):
             loss.backward()
             if args.hyper_vp and loss>0:
                 # calculate loss and the gradient of the loss for each hyper_param
-                total_norm = 0
+                total_norm   = 0
                 total_params = 0
                 for name, p in model.named_parameters():
                     if p.grad is None:
                         continue
-                    param_norm = p.grad.data.norm(2)
-                    total_norm += param_norm.item() ** 2
+                    param_norm    = p.grad.data.norm(2)
+                    total_norm   += param_norm.item() ** 2
                     total_params += p.numel()
                 total_norm = total_norm ** (1. / 2)
-                avg_norm = total_norm / len(hyp_param) / total_params
+                avg_norm   = total_norm / len(hyp_param) / total_params
                 # log them, keep 3 decimals
                 log_list["hyp_value"] = hyp_param.tolist()
-                log_list["sim_loss"] = sims.tolist()
-                log_list["vp_loss"] = k_szs.tolist()
+                log_list["sim_loss"]  = sims.tolist()
+                log_list["vp_loss"]   = k_szs.tolist()
             optim.step()
             # ddp reduce of loss
             loss, sim, reg = reduce_mean(loss), reduce_mean(sim), reduce_mean(reg)
@@ -475,12 +482,12 @@ def main(args):
                 'loss': loss.item()
             })
             train_epoch_loss = train_epoch_loss + loss.item()
-            train_reg_loss = train_reg_loss + reg.item()
+            train_reg_loss   = train_reg_loss + reg.item()
 
             # eval
             if iteration%10==0:
-                avg_time_per_iter = (default_timer() - st_t) / (iteration + 1 - start_iter)
-                est_time_for_epo = avg_time_per_iter * (len(train_loader) - iteration)
+                avg_time_per_iter  = (default_timer() - st_t) / (iteration + 1 - start_iter)
+                est_time_for_epo   = avg_time_per_iter * (len(train_loader) - iteration)
                 est_time_for_train = (args.epochs - epoch - 1) * len(train_loader) * avg_time_per_iter + est_time_for_epo
                 log_scalars.update({
                     'est_remain_time': est_time_for_train
@@ -529,8 +536,8 @@ def main(args):
 
                 if args.val_steps>0  and (iteration%args.val_steps==0 or args.debug):
                     print(f">>>>> Validation <<<<<")
-                    val_epoch_loss = 0
-                    dice_loss_val = {k:0 for k in segmentation_class_value.keys()}
+                    val_epoch_loss      = 0
+                    dice_loss_val       = {k:0 for k in segmentation_class_value.keys()}
                     to_ratios, total_to = 0,0
                     model.eval()
                     tb_imgs = {}
@@ -540,9 +547,9 @@ def main(args):
                             print(f"\t-----Iteration {itern} / {len(val_loader)} -----")
                         with torch.no_grad():
                             fixed, moving = data['voxel1'], data['voxel2']
-                            seg2 = data['segmentation2'].cuda()
-                            fixed = fixed.cuda()
-                            moving = moving.cuda()
+                            seg2          = data['segmentation2'].cuda()
+                            fixed         = fixed.cuda()
+                            moving        = moving.cuda()
                             if args.masked=='seg':
                                 mask = seg2
                                 if args.mask_seg_dice>0 and args.mask_seg_dice<1:
@@ -560,15 +567,15 @@ def main(args):
 
                             warped = [i[:, :1] for i in warped_]
                             # w_seg2 is the warped gt mask of moving
-                            w_seg2 = model.reconstruction(seg2.float().cuda(), agg_flows[-1].float())
+                            w_seg2   = model.reconstruction(seg2.float().cuda(), agg_flows[-1].float())
                             sim, reg = sim_loss(fixed, warped[-1]), reg_loss(flows[1:])
-                            loss = sim + reg
+                            loss     = sim + reg
                             val_epoch_loss += loss.item()
                             for k,v in segmentation_class_value.items():
                                 # Single category Segmentation map
-                                sseg1 = data['segmentation1'].cuda() > (v-0.5)
-                                w_sseg2 = w_seg2 > (v-0.5)
-                                dice, jac = dice_jaccard(sseg1, w_sseg2)
+                                sseg1             = data['segmentation1'].cuda() > (v-0.5)
+                                w_sseg2           = w_seg2 > (v-0.5)
+                                dice, jac         = dice_jaccard(sseg1, w_sseg2)
                                 dice_loss_val[k] += dice.mean().item()
                             # add metrics for to_ratio
                             to_ratio = (torch.sum(w_seg2>1.5, dim=(2, 3, 4)) / torch.sum(seg2>1.5, dim=(2, 3, 4))) /(torch.sum(w_seg2>0.5, dim=(2, 3, 4)) / torch.sum(seg2>0.5, dim=(2, 3, 4)))
@@ -578,12 +585,12 @@ def main(args):
                             to_ratios += to_ratio.sum()
                             total_to += len(to_ratio)
 
-                    tb_imgs['img1'] = fixed
-                    tb_imgs['img2'] = moving
+                    tb_imgs['img1']   = fixed
+                    tb_imgs['img2']   = moving
                     tb_imgs['warped'] = warped[-1]
                     with torch.no_grad():
-                        tb_imgs['seg1'] = data['segmentation1']
-                        tb_imgs['seg2'] = data['segmentation2']
+                        tb_imgs['seg1']   = data['segmentation1']
+                        tb_imgs['seg2']   = data['segmentation2']
                         tb_imgs['w_seg2'] = w_seg2
 
                     mean_val_loss = val_epoch_loss / len(val_loader)
@@ -591,11 +598,12 @@ def main(args):
                     val_loss_log.append(mean_val_loss)
                     mean_dice_loss = {}
                     for k, v in dice_loss_val.items():
-                        mean_dc = v / len(val_loader)
+                        mean_dc           = v / len(val_loader)
                         mean_dice_loss[k] = mean_dc
                         print(f'Mean dice loss {k}: {mean_dc}')
                     mean_to_ratio = total_to and to_ratios / total_to
                     print(f'Mean to_ratio: {mean_to_ratio}')
+                    
                     if not args.debug:
                         writer.add_scalar('val/loss', mean_val_loss, epoch * len(train_loader) + iteration)
                         writer.add_scalar('val/to_ratio', mean_to_ratio, epoch * len(train_loader) + iteration)
@@ -607,7 +615,7 @@ def main(args):
 
             if iteration % ckp_freq == 0:
                 if not args.debug and not os.path.exists('./ckp/model_wts/'+run_id):
-                    os.makedirs('./ckp/model_wts/'+run_id)
+                    os.makedirs('./ckp/model_wts/'+ run_id)
 
                 train_loss_log.append(train_epoch_loss / iteration)
                 reg_loss_log.append(train_reg_loss / iteration)
@@ -618,9 +626,9 @@ def main(args):
                 if args.hyper_vp:
                     ckp['hypernet_state_dict'] = model.hypernet.state_dict()
 
-                ckp['train_loss'] = train_loss_log
-                ckp['val_loss'] = val_loss_log
-                ckp['epoch'] = epoch
+                ckp['train_loss']  = train_loss_log
+                ckp['val_loss']    = val_loss_log
+                ckp['epoch']       = epoch
                 ckp['global_iter'] = iteration
                 torch.save(ckp, f'{ckp_dir}/epoch_{epoch}.pth')
                 optim_state = {}
