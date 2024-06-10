@@ -1,5 +1,8 @@
 import torch
 import torch.nn.functional as F
+from PIL import Image
+
+
 def load_model(state_dict, model):
     # load state dict
     model.stems.load_state_dict(state_dict['stem_state_dict'])
@@ -44,3 +47,18 @@ def find_surf(seg, kernel=3, thres=1):
     # how large a boundary we want to remove?
     # surf = (seg_num<(kernel**3//2)) & seg.bool()
     return surf
+
+
+def show_img(res, save_path=None, norm=True, cmap=None, inter_dst=5) -> Image:
+    import torchvision.transforms as T
+    res = tt(res)
+    if norm: res = normalize(res)
+    if res.ndim>=3:
+        return T.ToPILImage()(visualize_3d(res, cmap=cmap, inter_dst=inter_dst))
+    # normalize res
+    # res = (res-res.min())/(res.max()-res.min())
+
+    pimg = T.ToPILImage()(res)
+    if save_path:
+        pimg.save(save_path)
+    return pimg
