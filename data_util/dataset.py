@@ -1,6 +1,14 @@
+#%%
 import json
+import torch
 from torch.utils.data import Dataset
-
+import sys
+sys.path.append("..")
+from processing.cts_processors import ScanProcessor
+from processing.cts_operations import ReadVolume
+from processing.cts_operations import PadAndCropTo
+from processing.cts_operations import ToLungWindowLevelNormalization
+# %%
 class Split:
     TRAIN = 1
     VALID = 2
@@ -13,6 +21,9 @@ class RawData():
         self.root_dir  = root_dir
         self.mode      = mode
         self.transform = transform
+        self.inp_dtype = torch.float32
+        self.loader    = self.__init_operations()
+        
         
         mode_mapping = {
             'train': 'training',
@@ -29,27 +40,21 @@ class RawData():
             self.data = self.get_pairs_with_gt(data)
         else: self.data = data
     
-        #self.data = self.add_root_dir_to_paths()
+        self.add_root_dir_to_paths()
     
     
     def get_pairs_with_gt(self, data):
-        #fix_info = data[:20]
-        #mov_info = data[20:]
-        #return {'fix_info': fix_info, 'mov_info': mov_info}
         # Calculate the midpoint index
         midpoint_index = len(data) // 2
-
-        # Initialize lists to store pairs
         pairs = []
 
         # Create pairs from the first half and the second half
         for i in range(midpoint_index):
             pair = {
-                'fix_00' + str(i + 1): data[i],
-                'mov_00' + str(i + 1): data[i + midpoint_index]
+                'fix': data[i],
+                'mov': data[i + midpoint_index]
             }
             pairs.append(pair)
-            
         return pairs
 
     
@@ -61,14 +66,33 @@ class RawData():
                     # Update the path with the new project path
                     pair[key][item_key] = self.root_dir + item_value.lstrip('./')
             
+    def __init_operations(self):
+        return ScanProcessor(
+            ReadVolume(),
+            ToLungWindowLevelNormalization()
+        )
     
     def __len__(self):
-        
-        print(self.data)
         return len(self.data)
     
-    def __getitem__(self, index: int):
-        pass
+    
+    
+    def __getitem__(self, idx: int):
+        #print(self.data)
+        ret = {}
+        #print('Hello: ', self.data[idx]['fix']['image'])
+        '''ret['voxel1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['image'])).type(self.inp_dtype)
+        ret['voxel2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
+        ret['segmentation1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
+        ret['segmentation2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)'''
+        ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
+        ret['voxel2'] = self.loader(self.data[idx]['mov']['image'])
+        ret['segmentation1'] = self.loader(self.data[idx]['fix']['mask'])
+        ret['segmentation2'] = self.loader(self.data[idx]['mov']['mask'])
+        #print(ret) 
+        return ret
+        
+        
         
  
 class Data(RawData, Dataset):
@@ -76,16 +100,19 @@ class Data(RawData, Dataset):
         RawData.__init__(self, args, **kwargs)
         
 
+
+
 import sys 
 sys.path.append('..')
 from tools.utils import show_img
 import matplotlib.pyplot as plt
 #if __name__  == 'main':
 data_file = '/home/cerquinl/projects/raw_data/LungCT/LungCT_dataset.json'
-root_dir  = '/processing/l.estacio/L2R-Dataset-2022/LungCT'
+root_dir  = '/home/cerquinl/projects/raw_data/LungCT/'
 
 
 data      = Data(data_file, root_dir=root_dir, mode='train')
 print(len(data))
 print(data)
+data[0]
     
