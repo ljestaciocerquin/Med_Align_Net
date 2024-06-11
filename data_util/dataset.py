@@ -81,14 +81,14 @@ class RawData():
         #print(self.data)
         ret = {}
         #print('Hello: ', self.data[idx]['fix']['image'])
-        '''ret['voxel1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['image'])).type(self.inp_dtype)
+        ret['voxel1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['image'])).type(self.inp_dtype)
         ret['voxel2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
         ret['segmentation1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
-        ret['segmentation2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)'''
-        ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
+        ret['segmentation2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
+        '''ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
         ret['voxel2'] = self.loader(self.data[idx]['mov']['image'])
         ret['segmentation1'] = self.loader(self.data[idx]['fix']['mask'])
-        ret['segmentation2'] = self.loader(self.data[idx]['mov']['mask'])
+        ret['segmentation2'] = self.loader(self.data[idx]['mov']['mask'])'''
         #print(ret) 
         return ret
         
@@ -115,5 +115,5 @@ root_dir  = '/home/cerquinl/projects/raw_data/LungCT/'
 
 data      = Data(data_file, root_dir=root_dir, mode='train')
 print(len(data))
-plot_sample_data(data[0], slide=128, save_path='./128.png')
+plot_sample_data(data[0], slide=128, save_path='./128_torch.png')
     
