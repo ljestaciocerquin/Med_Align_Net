@@ -344,8 +344,8 @@ class ToLungWindowLevelNormalization(TransformProcessor):
     
     def __call__(self, image):
         # Convert pixel values to Hounsfield Units
-        image = sitk.GetArrayFromImage(image)
-
+        #image = sitk.GetArrayFromImage(image)
+        image = np.moveaxis(sitk.GetArrayFromImage(image), 0, -1)
         # Set a window level and width for lung visualization
         img_min = self.window_center - self.window_width // 2
         img_max = self.window_center + self.window_width // 2

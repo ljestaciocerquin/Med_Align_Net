@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_sample_data(sample, slide=80):
+def plot_sample_data(sample, slide=80, save_path=None):
     
     kps_i = np.zeros(sample['voxel1'][:, :, slide].shape)
     kps_e = np.zeros(sample['voxel2'][:, :, slide].shape)
@@ -26,4 +26,6 @@ def plot_sample_data(sample, slide=80):
     #axs[2, 0].axis('off')
     #axs[2, 1].axis('off')
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
     plt.show()
