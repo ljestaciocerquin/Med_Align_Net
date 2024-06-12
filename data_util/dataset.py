@@ -65,7 +65,9 @@ class RawData():
                 for item_key, item_value in value.items():
                     # Update the path with the new project path
                     pair[key][item_key] = self.root_dir + item_value.lstrip('./')
-            
+    
+    
+          
     def __init_operations(self):
         return ScanProcessor(
             ReadVolume(),

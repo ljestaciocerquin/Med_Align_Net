@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import SimpleITK as sitk
 import matplotlib.pyplot as plt
 
 def to_numpy(tensor):
@@ -55,32 +56,36 @@ def plot_sample_data(sample, slide=80, save_path=None):
     
     plt.show()
 
+def print_img_info(selected_image, title='Train image:'):
+    print(title)
+    print('origin: ' + str(selected_image.GetOrigin()))
+    print('size: ' + str(selected_image.GetSize()))
+    print('spacing: ' + str(selected_image.GetSpacing()))
+    print('direction: ' + str(selected_image.GetDirection()))
+    print('pixel type: ' + str(selected_image.GetPixelIDTypeAsString()))
+    print('number of pixel components: ' + str(selected_image.GetNumberOfComponentsPerPixel()))
 
-def plot_sample_data_numpy(sample, slide=80, save_path=None):
-    
-    kps_i = np.zeros(sample['voxel1'][:, :, slide].shape)
-    kps_e = np.zeros(sample['voxel2'][:, :, slide].shape)
-    
-    #for kp in sample['kps_i'][sample['kps_i'][:, 2] == slide]:
-    #    kps_i[int(kp[1]), int(kp[0])] = 1
-    #for kp in sample['kps_e'][sample['kps_e'][:, 2] == slide]:
-    #    kps_e[int(kp[1]), int(kp[0])] = 1
-    
-    
-    fig, axs = plt.subplots(2,2, figsize=(10,10))
-    axs[0,0].imshow(sample['voxel1'][:, :, slide], cmap='gray')
-    axs[0,1].imshow(sample['voxel2'][:,:, slide], cmap='gray')
-    axs[1,0].imshow(sample['segmentation1'][:,:, slide], cmap='gray')
-    axs[1,1].imshow(sample['segmentation2'][:,:, slide], cmap='gray')
-    #axs[2,0].imshow(kps_i, cmap='gray')
-    #axs[2,1].imshow(kps_e, cmap='gray')
-    axs[0, 0].axis('off')
-    axs[0, 1].axis('off')
-    axs[1, 0].axis('off')
-    axs[1, 1].axis('off')
-    #axs[2, 0].axis('off')
-    #axs[2, 1].axis('off')
+
+# a simple function to plot an image
+def plot1(fixed, title='', slice=128, figsize=(12, 12)):
+    fig, axs = plt.subplots(1, 1, figsize=figsize)
+    axs.imshow(sitk.GetArrayFromImage(fixed)[slice, :, :], cmap='gray', origin='lower')
+    axs.set_title(title, fontdict={'size':26})
+    axs.axis('off')
     plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path, bbox_inches='tight')
+    plt.show()
+    
+# a simple function to plot 3 images at once
+def plot3(fixed, moving, transformed, labels=['Fixed', 'Moving', 'Moving Transformed'], slice=128):
+    fig, axs = plt.subplots(1, 3, figsize=(24, 12))
+    axs[0].imshow(sitk.GetArrayFromImage(fixed)[slice, :, :], cmap='gray', origin='lower')
+    axs[0].set_title(labels[0], fontdict={'size':26})
+    axs[0].axis('off')
+    axs[1].imshow(sitk.GetArrayFromImage(moving)[slice, :, :], cmap='gray', origin='lower')
+    axs[1].axis('off')
+    axs[1].set_title(labels[1], fontdict={'size':26})
+    axs[2].imshow(sitk.GetArrayFromImage(transformed)[slice, :, :], cmap='gray', origin='lower')
+    axs[2].axis('off')
+    axs[2].set_title(labels[2], fontdict={'size':26})
+    plt.tight_layout()
     plt.show()
