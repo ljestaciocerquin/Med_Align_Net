@@ -19,6 +19,7 @@ def plot_sample_data(sample, slide=80, save_path=None):
     # Uncomment if you need to visualize keypoints
     kps_i_coords = convert_tensor_to_numpy(sample['kps1'])
     kps_e_coords = convert_tensor_to_numpy(sample['kps2'])
+    print('Helllloooooooooo', kps_i_coords)
     for kp in kps_i_coords[kps_i_coords[:, 2] == slide]:
         kps_i[int(kp[1]), int(kp[0])] = 1
     for kp in kps_e_coords[kps_e_coords[:, 2] == slide]:
