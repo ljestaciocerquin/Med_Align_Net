@@ -23,7 +23,8 @@ class RawData():
         self.mode      = mode
         self.transform = transform
         self.inp_dtype = torch.float32
-        self.loader    = self.__init_operations()
+        self.loader    = self.__init_loader()
+        self.loader_op = self.__init_operations()
         
         
         mode_mapping = {
@@ -72,7 +73,12 @@ class RawData():
         kps = pd.read_csv(file, header=None).values.astype(int)
         return kps
         
-          
+    def __init_loader(self):
+        return ScanProcessor(
+            ReadVolume(),
+        )
+        
+              
     def __init_operations(self):
         return ScanProcessor(
             ReadVolume(),
@@ -88,10 +94,12 @@ class RawData():
         #print(self.data)
         ret = {}
         #print('Hello: ', self.data[idx]['fix']['image'])
-        ret['voxel1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['image'])).type(self.inp_dtype)
-        ret['voxel2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
-        ret['segmentation1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
-        ret['segmentation2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
+        ret['img1']   = self.loader(self.data[idx]['fix']['image'])
+        ret['img2']   = self.loader(self.data[idx]['mov']['image'])
+        ret['voxel1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
+        ret['voxel2'] = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
+        ret['segmentation1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
+        ret['segmentation2'] = torch.from_numpy(self.loader_op(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
         ret['kps1']  = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
         ret['kps2']  = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
         '''ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
