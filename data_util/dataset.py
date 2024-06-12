@@ -1,6 +1,7 @@
 #%%
 import json
 import torch
+import pandas as pd
 from torch.utils.data import Dataset
 import sys
 sys.path.append("..")
@@ -67,6 +68,10 @@ class RawData():
                     pair[key][item_key] = self.root_dir + item_value.lstrip('./')
     
     
+    def read_keypoints(self, file):
+        kps = pd.read_csv(file, header=None).values.astype(int)
+        return kps
+        
           
     def __init_operations(self):
         return ScanProcessor(
@@ -87,6 +92,8 @@ class RawData():
         ret['voxel2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
         ret['segmentation1'] = torch.from_numpy(self.loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
         ret['segmentation2'] = torch.from_numpy(self.loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
+        ret['kps1']  = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
+        ret['kps2']  = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
         '''ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
         ret['voxel2'] = self.loader(self.data[idx]['mov']['image'])
         ret['segmentation1'] = self.loader(self.data[idx]['fix']['mask'])
@@ -103,7 +110,7 @@ class Data(RawData, Dataset):
         
 
 
-
+#%%
 import sys 
 sys.path.append('..')
 from tools.utils         import show_img
@@ -118,4 +125,6 @@ root_dir  = '/home/cerquinl/projects/raw_data/LungCT/'
 data      = Data(data_file, root_dir=root_dir, mode='train')
 print(len(data))
 plot_sample_data(data[0], slide=128, save_path='./128_torch.png')
-    
+print(data[0])
+
+# %%
