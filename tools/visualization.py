@@ -2,17 +2,9 @@ import torch
 import numpy as np
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
+from   tools.utils import to_numpy
 
-def to_numpy(tensor):
-    if isinstance(tensor, torch.Tensor):
-        return tensor.cpu().numpy()
-    return tensor
 
-    voxel1 = to_numpy(sample['voxel1'])
-    voxel2 = to_numpy(sample['voxel2'])
-    segmentation1 = to_numpy(sample['segmentation1'])
-    segmentation2 = to_numpy(sample['segmentation2'])
-    
 
 def plot_sample_data(sample, slide=80, save_path=None):
     

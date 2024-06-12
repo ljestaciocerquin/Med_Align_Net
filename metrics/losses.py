@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import torch.nn.functional as F
 from   tools.utils import find_surf
 
@@ -295,6 +296,22 @@ def surf_loss(w_seg, seg1, flow):
     # print(surf_loss.shape)
     # print(surf_loss.norm(dim=1).mean())
     return surf_loss.norm(dim=1).mean()
+
+
+def compute_TRE(points_fixed, points_moved, voxel_spacing):
+    """Compute Target Registration Error (TRE) between two sets of points.
+
+    Args:
+        points_fixed (np.ndarray): points in fixed space
+        points_moved (np.ndarray): points in moved space
+
+    Returns:
+        mean TRE: average TRE over all points
+        std TRE: standard deviation of TRE over all points
+    """
+    differences = (points_moved - points_fixed) * voxel_spacing
+    distances = np.linalg.norm(differences, axis=1)
+    return np.mean(distances), np.std(distances) 
 
 
 # if main

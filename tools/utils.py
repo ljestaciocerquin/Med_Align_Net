@@ -3,6 +3,11 @@ import torch.nn.functional as F
 from PIL import Image
 
 
+def to_numpy(tensor):
+    if isinstance(tensor, torch.Tensor):
+        return tensor.cpu().numpy()
+    return tensor
+
 def load_model(state_dict, model):
     # load state dict
     model.stems.load_state_dict(state_dict['stem_state_dict'])
