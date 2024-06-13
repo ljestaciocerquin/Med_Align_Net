@@ -125,14 +125,14 @@ from tools.utils         import show_img
 from tools.visualization import plot_sample_data
 
 import matplotlib.pyplot as plt
-#if __name__  == 'main':
-data_file = '/home/cerquinl/projects/raw_data/LungCT/LungCT_dataset.json'
-root_dir  = '/home/cerquinl/projects/raw_data/LungCT/'
+if __name__  == 'main':
+    data_file = '/data/groups/beets-tan/l.estacio/lung_data/LungCT/LungCT_dataset.json'
+    root_dir  = '/data/groups/beets-tan/l.estacio/lung_data/LungCT/'
 
 
-data      = Data(data_file, root_dir=root_dir, mode='train')
-print(len(data))
-plot_sample_data(data[0], slide=128, save_path='./128_torch.png')
-print(data[0])
+    data      = Data(data_file, root_dir=root_dir, mode='train')
+    print(len(data))
+    plot_sample_data(data[0], slide=128, save_path='./128_torch.png')
+    print(data[0])
 
 # %%
