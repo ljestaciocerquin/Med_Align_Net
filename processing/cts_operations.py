@@ -335,22 +335,16 @@ class ToNumpyArray(TransformProcessor):
 class ToLungWindowLevelNormalization(TransformProcessor):
     def __init__(self):
         # Lung tissue typically falls within a specific range of Hounsfield Units. 
-        # A common window level (center) and window width for lung CT are:
-        # Window Level (L): -600 HU
-        # Window Width (W): 1500 HU
-        self.window_center = -600
-        self.window_width  = 1500
+        self.min_hu  = -1000
+        self.max_hu  = 400
+        self.new_min = 0
+        self.new_max = 1
         super(ToLungWindowLevelNormalization, self).__init__()
     
     def __call__(self, image):
         # Convert pixel values to Hounsfield Units
         #image = sitk.GetArrayFromImage(image)
         image = np.moveaxis(sitk.GetArrayFromImage(image), 0, -1)
-        # Set a window level and width for lung visualization
-        img_min = self.window_center - self.window_width // 2
-        img_max = self.window_center + self.window_width // 2
-        image   = np.clip(image, img_min, img_max)
-
-        # Normalize the image
-        norm_image = (image - np.min(image)) / (np.max(image) - np.min(image))
-        return norm_image
+        image = np.clip(image, self.min_hu, self.max_hu)
+        image = (image - self.min_hu) / (self.max_hu - self.min_hu) * (self.new_max - self.new_min) + self.new_min
+        return image

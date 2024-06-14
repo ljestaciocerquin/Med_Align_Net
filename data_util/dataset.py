@@ -94,6 +94,8 @@ class RawData():
         #print(self.data)
         ret = {}
         #print('Hello: ', self.data[idx]['fix']['image'])
+        ret['img1_path']   = self.data[idx]['fix']['image']
+        ret['img2_path']   = self.data[idx]['mov']['image']
         ret['img1']   = self.loader(self.data[idx]['fix']['image'])
         ret['img2']   = self.loader(self.data[idx]['mov']['image'])
         ret['voxel1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
