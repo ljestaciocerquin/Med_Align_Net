@@ -22,7 +22,7 @@ from run_utils import build_precompute, read_cfg
 from tools.utils import load_model, load_model_from_dir
 from networks.recursive_cascade_networks import RecursiveCascadeNetwork
 from metrics.losses import det_loss, focal_loss, jacobian_det, masked_sim_loss, ortho_loss, reg_loss, dice_jaccard, sim_loss, surf_loss, dice_loss
-from data_util.dataset import Split
+from data_util.dataset import Data
 #from data_util.dataset import Data, Split
 
 
@@ -48,7 +48,9 @@ parser.add_argument('-ct', '--continue_training',    action='store_true')
 parser.add_argument('--ctt', '--continue_training_this', type=lambda x: os.path.realpath(x), default=None)
 
 # Dataset settings
-parser.add_argument('-d', '--dataset',     type=str, default='datasets/liver_cust.json', help='Specifies a data config')
+parser.add_argument('-d', '--dataset',     type=str, default='/data/groups/beets-tan/l.estacio/lung_data/LungCT/LungCT_dataset.json', help='Specifies a data config')
+parser.add_argument('-rd', '--root_dir',   type=str, default='/data/groups/beets-tan/l.estacio/lung_data/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-tm', '--task_mode',  type=str, default='train', help='Specifies the task to perform: train|val|test')
 parser.add_argument('-ic', '--in_channel', type=int, default=2,  help='Input channel number')
 parser.add_argument('-g', '--gpu',         type=str, default='', help='GPU to use')
 parser.add_argument('--name',              type=str, default='')
@@ -59,7 +61,7 @@ parser.add_argument('--det',   type=float, default=0.1, help="use det loss")
 parser.add_argument('--reg',   type=float, default=1,   help="use reg loss")
 
 # Network structure settings
-parser.add_argument('-base', '--base_network', type=str, default='VTN')
+parser.add_argument('-base', '--base_network', type=str, default='VXM')#
 parser.add_argument('-n', "--n_cascades",      type=int, default=3)
 parser.add_argument('-ua', '--use_affine',     type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], default=True, help="whether to use affine transformation")
 
@@ -113,21 +115,17 @@ def hyp_param_generator(param_range, oversample=.2, batch=1):
 
 
 def main(args):
-    train_scheme = args.training_scheme or Split.TRAIN
-    val_scheme   = args.val_scheme or Split.VALID
-    print('Train', train_scheme)
-    print('Val', val_scheme)
     
-    train_dataset  = Data(args.dataset, rounds=args.round*args.batch_size, scheme=train_scheme)
-    val_dataset    = Data(args.dataset, scheme=val_scheme)
-    data_type      = 'liver' if 'liver' in args.dataset else 'brain'
+    train_dataset  = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode)
+    val_dataset    = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode) # Improve this
+    data_type      = 'liver' if 'liver' in args.dataset else 'lung'
     ckp_freq       = int(args.checkpoint_frequency * args.round)
     args.data_type = data_type
 
     # get time and generate run_id
     dt     = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))) # HK time
     run_id = '_'.join([dt.strftime('%b%d-%H%M%S'),
-                       str(data_type)[:2] + str(train_scheme), # what dataset to use
+                       str(data_type)[:2] + args.task_mode, # what dataset to use
                        args.base_network + 'x' + str(args.n_cascades), # base network and number of cascades
                        args.name,
                        args.masked + (f'thr{args.mask_threshold}' + args.soft_transform + 'bnd' + str(args.boundary_thickness) + 'st{}'.format(1+args.use_2nd_flow) + ('bf' if args.use_bilateral and args.use_2nd_flow else '')
@@ -142,7 +140,7 @@ def main(args):
     if not args.debug:
         if not args.ctt:
             print("Creating log dir")
-            log_dir = os.path.join('./logs', data_type, args.base_network, 'hyp' if args.hyper_vp else str(train_scheme), run_id)
+            log_dir = os.path.join('./logs', data_type, args.base_network, 'hyp' if args.hyper_vp else str(args.task_mode), run_id)
             os.path.exists(log_dir) or os.makedirs(log_dir)
             if not os.path.exists(log_dir + '/model_wts/'):
                 print("Creating ckp dir", os.path.abspath(log_dir))
@@ -191,7 +189,7 @@ def main(args):
             name = '_'.join(name)
             # hash run_id into a short string
             id_for_wandb = hashlib.md5(run_id.encode()).hexdigest()[:8]
-            tags         = run_id.split('_') + [data_type, args.base_network, str(train_scheme)]
+            tags         = run_id.split('_') + [data_type, args.base_network, str(args.task_mode)]
             # rm empty tags
             tags = [t for t in tags if t]
             wandb.init(name=name, notes=run_id, sync_tensorboard=True, config=cfg, save_code=True, dir=pa(log_dir).parent,
@@ -205,7 +203,7 @@ def main(args):
     # read config
     with open(args.dataset, 'r') as f:
         cfg        = json.load(f)
-        image_size = cfg.get('image_size', [128, 128, 128])
+        image_size = cfg.get('image_size', [192, 192, 208])
         segmentation_class_value = cfg.get('segmentation_class_value', {'unknown':1})
 
     in_channels = args.in_channel
@@ -262,7 +260,6 @@ def main(args):
         train_loader  = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, sampler=train_sampler)
     else:
         train_loader  = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=num_worker, shuffle=True)
-    # val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=num_worker, shuffle=False)
 
     train_loss_log = []
@@ -507,12 +504,14 @@ def main(args):
                         str(datetime.timedelta(seconds=est_time_for_train))),
                           end='\r')
                     if not args.debug:
-                        writer.add_image('train/img1', visualize_3d(fixed[0, 0]), epoch * len(train_loader) + iteration)
-                        writer.add_image('train/img2', visualize_3d(moving[0, 0]), epoch * len(train_loader) + iteration)
-                        writer.add_image('train/warped', visualize_3d(warped[-1][0, 0]), epoch * len(train_loader) + iteration)
-                        writer.add_image('train/seg1', visualize_3d(seg1[0, 0]), epoch * len(train_loader) + iteration)
-                        writer.add_image('train/seg2', visualize_3d(seg2[0, 0]), epoch * len(train_loader) + iteration)
-                        writer.add_image('train/w_seg2', visualize_3d(w_seg2[0, 0]), epoch * len(train_loader) + iteration)
+                        wandb.log({
+                            'train/img1': wandb.Image(visualize_3d(fixed[0, 0]), caption='Fixed Image')
+                            'train/img2': wandb.Image(visualize_3d(moving[0, 0]), caption='Moving Image'),
+                            'train/warped': wandb.Image(visualize_3d(warped[-1][0, 0]), epoch * len(train_loader) + iteration),
+                            'train/seg1': wandb.Image(visualize_3d(seg1[0, 0]), epoch * len(train_loader) + iteration),
+                           'train/seg2': wandb.Image(visualize_3d(seg2[0, 0]), epoch * len(train_loader) + iteration),
+                            'train/w_seg2': wandb.Image(visualize_3d(w_seg2[0, 0]), epoch * len(train_loader) + iteration),
+                        }, step=epoch * len(train_loader) + iteration)
                         for k,v in img_dict.items():
                             writer.add_image('train/'+k, v, epoch * len(train_loader) + iteration)
 
