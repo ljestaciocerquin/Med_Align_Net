@@ -16,15 +16,13 @@ from torch import distributed as dist
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR, LambdaLR
 from torch.nn.parallel import DistributedDataParallel as DDP
-#-----> from torch.utils.tensorboard import SummaryWriter
 
 from run_utils import build_precompute, read_cfg
 from tools.utils import load_model, load_model_from_dir
 from networks.recursive_cascade_networks import RecursiveCascadeNetwork
 from metrics.losses import det_loss, focal_loss, jacobian_det, masked_sim_loss, ortho_loss, reg_loss, dice_jaccard, sim_loss, surf_loss, dice_loss
 from data_util.dataset import Data
-#from data_util.dataset import Data, Split
-
+from tools.visualization import visualize_3d, draw_seg_on_vol
 
 
 parser = argparse.ArgumentParser()
@@ -39,6 +37,7 @@ parser.add_argument('--lr_scheduler', default='step', type=str, choices=['linear
 parser.add_argument('-aug', '--augment',   type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], default=False, help='Augment data')
 parser.add_argument('--training_scheme',   type=lambda x:int(x) if x.isdigit() else x, default='', help='Specifies a training scheme')
 parser.add_argument('-vs', '--val_scheme', type=lambda x:int(x) if x.isdigit() else x, default='', help='Specifies a validation scheme')
+parser.add_argument('-wb', '--use_wandb', type=bool, default=True, help='Use Weights and Biases for logging')
 parser.add_argument('--debug', action='store_true', help="run the script without saving files")
 
 # Checkpoint settings
@@ -192,12 +191,11 @@ def main(args):
             tags         = run_id.split('_') + [data_type, args.base_network, str(args.task_mode)]
             # rm empty tags
             tags = [t for t in tags if t]
-            wandb.init(name=name, notes=run_id, sync_tensorboard=True, config=cfg, save_code=True, dir=pa(log_dir).parent,
-                       resume='allow' if not args.ctt else 'must', id=id_for_wandb, tags=tags)
+            wandb.init(name=name, notes=run_id,  config=cfg, save_code=True, dir=pa(log_dir).parent,
+                       resume='allow' if not args.ctt else 'must', id=id_for_wandb, tags=tags) #sync_tensorboard=True,
         
         # print in green the following message
         print('\033[92m')
-        #----------> writer = SummaryWriter(log_dir=log_dir)
         print('\033[0m')
 
     # read config
@@ -505,33 +503,31 @@ def main(args):
                           end='\r')
                     if not args.debug:
                         wandb.log({
-                            'train/img1': wandb.Image(visualize_3d(fixed[0, 0]), caption='Fixed Image')
+                            'train/img1': wandb.Image(visualize_3d(fixed[0, 0]), caption='Fixed Image'),
                             'train/img2': wandb.Image(visualize_3d(moving[0, 0]), caption='Moving Image'),
-                            'train/warped': wandb.Image(visualize_3d(warped[-1][0, 0]), epoch * len(train_loader) + iteration),
-                            'train/seg1': wandb.Image(visualize_3d(seg1[0, 0]), epoch * len(train_loader) + iteration),
-                           'train/seg2': wandb.Image(visualize_3d(seg2[0, 0]), epoch * len(train_loader) + iteration),
-                            'train/w_seg2': wandb.Image(visualize_3d(w_seg2[0, 0]), epoch * len(train_loader) + iteration),
+                            'train/warped': wandb.Image(visualize_3d(warped[-1][0, 0]), caption='Warped Image'),
+                            'train/seg1': wandb.Image(visualize_3d(seg1[0, 0]), caption='Segmentation 1'),
+                            'train/seg2': wandb.Image(visualize_3d(seg2[0, 0]), caption='Segmentation 2'),
+                            'train/w_seg2': wandb.Image(visualize_3d(w_seg2[0, 0]), caption='Warped Segmentation 2'),
                         }, step=epoch * len(train_loader) + iteration)
                         for k,v in img_dict.items():
-                            writer.add_image('train/'+k, v, epoch * len(train_loader) + iteration)
+                            wandb.log({f'train/{k}': wandb.Image(v, caption=k)}, step=epoch * len(train_loader) + iteration)
 
                 if not args.debug:
                     for k in loss_dict:
-                        writer.add_scalar('train/'+k, loss_dict[k], epoch * len(train_loader) + iteration)
-                    writer.add_scalar('train/lr', scheduler.get_last_lr()[0], epoch * len(train_loader) + iteration)
+                        wandb.log({'train/' + k: loss_dict[k]}, step=epoch * len(train_loader) + iteration)
+                    wandb.log({'train/lr': scheduler.get_last_lr()[0]}, step=epoch * len(train_loader) + iteration)
                     for k in log_scalars:
-                        writer.add_scalar('train/'+k, log_scalars[k], epoch * len(train_loader) + iteration)
+                        wandb.log({'train/' + k: log_scalars[k]}, step=epoch * len(train_loader) + iteration)
                     if args.hyper_vp:
                         for k in log_list:
-                            writer.add_histogram('train/'+k, np.array(log_list[k]), epoch * len(train_loader) + iteration)
+                            wandb.log({'train/' + k: wandb.Histogram(np_histogram=np.histogram(log_list[k]))}, step=epoch * len(train_loader) + iteration)
                     if args.hyper_vp:
                         print('\n')
                         print("hyp param is  ", '\t'.join([str(i.item())[:5] for i in hyp_param]))
                         print("sim loss is:", "\t".join([str(i.item())[:5] for i in sims]))
                         print("vp loss is: ", "\t".join([str(i.item())[:5] for i in k_szs]))
                         print("avg hyper param:", hyp_param.mean().item(), "avg grad norm:", avg_norm, f"({total_params} params)")
-                        # writer.add_scalar('train/avg_hyper_param', hyp_param.mean().item(), epoch * len(train_loader) + iteration)
-                        # writer.add_scalar('train/avg_grad_norm', total_norm, epoch * len(train_loader) + iteration)
 
                 if args.val_steps>0  and (iteration%args.val_steps==0 or args.debug):
                     print(f">>>>> Validation <<<<<")
@@ -552,7 +548,7 @@ def main(args):
                             if args.masked=='seg':
                                 mask = seg2
                                 if args.mask_seg_dice>0 and args.mask_seg_dice<1:
-                                    mask = rand_mask_(mask)
+                                    pass#mask = rand_mask_(mask)
                                 moving_ = torch.cat([moving, mask], dim=1)
                             elif args.masked in ['soft', 'hard']:
                                 input_seg, compute_mask = model.pre_register(fixed, moving, seg2, training=False, cfg=cfg_train)
@@ -604,13 +600,13 @@ def main(args):
                     print(f'Mean to_ratio: {mean_to_ratio}')
                     
                     if not args.debug:
-                        writer.add_scalar('val/loss', mean_val_loss, epoch * len(train_loader) + iteration)
-                        writer.add_scalar('val/to_ratio', mean_to_ratio, epoch * len(train_loader) + iteration)
+                        wandb.log({'val/loss': mean_val_loss}, step=epoch * len(train_loader) + iteration)
+                        wandb.log({'val/to_ratio': mean_to_ratio}, step=epoch * len(train_loader) + iteration)
                         for k in mean_dice_loss.keys():
-                            writer.add_scalar(f'val/dice_{k}', mean_dice_loss[k], epoch * len(train_loader) + iteration)
+                            wandb.log({f'val/dice_{k}': mean_dice_loss[k]}, step=epoch * len(train_loader) + iteration)
                         # add img1, img2, seg1, seg2, warped, w_seg2
                         for k, im in tb_imgs.items():
-                            writer.add_image(f'val/{k}', visualize_3d(im[0,0]), epoch * len(train_loader) + iteration)
+                            wandb.log({f'val/{k}': wandb.Image(visualize_3d(im[0, 0]), caption=k)}, step=epoch * len(train_loader) + iteration)
 
             if iteration % ckp_freq == 0:
                 if not args.debug and not os.path.exists('./ckp/model_wts/'+run_id):
@@ -639,9 +635,17 @@ def main(args):
             t0 = default_timer()
         scheduler.step()
         start_iter = 0
+        
 
 
+if __name__ == '__main__':
+    args = parser.parse_args()
+    if args.gpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    # set gpu to the one with most free memory
+    import subprocess
+    GPU_ID = subprocess.getoutput('nvidia-smi --query-gpu=memory.free --format=csv,nounits,noheader | nl -v 0 | sort -nrk 2 | cut -f 1| head -n 1 | xargs')
+    print('Using GPU', GPU_ID)
+    os.environ['CUDA_VISIBLE_DEVICES'] = GPU_ID
 
-
-
-print('Hello!')
+    main(args)

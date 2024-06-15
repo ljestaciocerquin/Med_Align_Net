@@ -94,8 +94,8 @@ class RawData():
         if self.mode == 'train':
             ret['img1_path']     = self.data[idx]['fix']['image']
             ret['img2_path']     = self.data[idx]['mov']['image']
-            ret['img1']          = self.loader(self.data[idx]['fix']['image'])
-            ret['img2']          = self.loader(self.data[idx]['mov']['image'])
+            #ret['img1']          = self.loader(self.data[idx]['fix']['image'])
+            #ret['img2']          = self.loader(self.data[idx]['mov']['image'])
             ret['voxel1']        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
             ret['voxel2']        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
             ret['segmentation1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
@@ -110,8 +110,8 @@ class RawData():
         else:
             ret['img1_path']     = self.data[idx]['fix']['image']
             ret['img2_path']     = self.data[idx]['mov']['image']
-            ret['img1']          = self.loader(self.data[idx]['fix']['image'])
-            ret['img2']          = self.loader(self.data[idx]['mov']['image'])
+            #ret['img1']          = self.loader(self.data[idx]['fix']['image'])
+            #ret['img2']          = self.loader(self.data[idx]['mov']['image'])
             ret['voxel1']        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
             ret['voxel2']        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
             ret['segmentation1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
