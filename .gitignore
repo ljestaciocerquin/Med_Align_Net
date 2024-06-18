@@ -2,3 +2,4 @@
 __pycache__/
 wandb/
 notebooks/test_parameters.ipynb
+logs/
