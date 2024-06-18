@@ -94,18 +94,19 @@ class RawData():
         if self.mode == 'train':
             ret['img1_path']     = self.data[idx]['fix']['image']
             ret['img2_path']     = self.data[idx]['mov']['image']
-            #ret['img1']          = self.loader(self.data[idx]['fix']['image'])
-            #ret['img2']          = self.loader(self.data[idx]['mov']['image'])
-            ret['voxel1']        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
-            ret['voxel2']        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
-            ret['segmentation1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
-            ret['segmentation2'] = torch.from_numpy(self.loader_op(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
-            ret['kps1']          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
-            ret['kps2']          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
-            '''ret['voxel1'] = self.loader(self.data[idx]['fix']['image'])
-            ret['voxel2'] = self.loader(self.data[idx]['mov']['image'])
-            ret['segmentation1'] = self.loader(self.data[idx]['fix']['mask'])
-            ret['segmentation2'] = self.loader(self.data[idx]['mov']['mask'])'''
+            voxel1        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
+            voxel2        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
+            segmentation1 = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
+            segmentation2 = torch.from_numpy(self.loader_op(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
+            kps1          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
+            kps2          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
+            ret['voxel1']        = voxel1[None, :]
+            ret['voxel2']        = voxel2[None, :]
+            ret['segmentation1'] = segmentation1[None, :]
+            ret['segmentation2'] = segmentation2[None, :]
+            ret['kps1']          = kps1
+            ret['kps2']          = kps2
+            
         
         else:
             ret['img1_path']     = self.data[idx]['fix']['image']

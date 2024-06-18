@@ -311,7 +311,7 @@ class VTNAffineStem(nn.Module):
         # I'm assuming that the image's shape is like (im_size, im_size, im_size)
         self.last_conv_size = im_size // (self.channels * 4)
         self.fc_loc         = nn.Sequential(
-            nn.Linear(512 * self.last_conv_size**dim, 2048),
+            nn.Linear(18432, 2048),#(512 * self.last_conv_size**dim, 2048),
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(2048, 1024),
@@ -380,20 +380,20 @@ class VTNAffineStem(nn.Module):
             flow: the flow field
             theta: dict, with the affine transformation parameters
         """
-        concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512
-        x1   = self.conv1(concat_image)  # 16 x 256 x 256
-        x2   = self.conv2(x1)  # 32 x 128 x 128
-        x3   = self.conv3(x2)  # 1 x 64 x 64 x 64
-        x3_1 = self.conv3_1(x3)  # 64 x 64 x 64
-        x4   = self.conv4(x3_1)  # 128 x 32 x 32
-        x4_1 = self.conv4_1(x4)  # 128 x 32 x 32
-        x5   = self.conv5(x4_1)  # 256 x 16 x 16
-        x5_1 = self.conv5_1(x5)  # 256 x 16 x 16
-        x6   = self.conv6(x5_1)  # 512 x 8 x 8
-        x6_1 = self.conv6_1(x6)  # 512 x 8 x 8
+        concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512  ----- #2 x 192 x 192 x 208
+        x1   = self.conv1(concat_image)  # 16 x 256 x 256  ----- #16 x 96 x 96 x 104
+        x2   = self.conv2(x1)  # 32 x 128 x 128  ----- #32 x 48 x 48 x 52
+        x3   = self.conv3(x2)  # 1 x 64 x 64 x 64  ----- #64 x 24 x 24 x 26
+        x3_1 = self.conv3_1(x3)  # 64 x 64 x 64  ----- #64 x 24 x 24 x 26
+        x4   = self.conv4(x3_1)  # 128 x 32 x 32  ----- #128 x 12 x 12 x 13
+        x4_1 = self.conv4_1(x4)  # 128 x 32 x 32  ----- #128 x 12 x 12 x 13
+        x5   = self.conv5(x4_1)  # 256 x 16 x 16  ----- #256 x 6 x 6 x 7
+        x5_1 = self.conv5_1(x5)  # 256 x 16 x 16  ----- #256 x 6 x 6 x 7
+        x6   = self.conv6(x5_1)  # 512 x 8 x 8  ----- #512 x 3 x 3 x 4
+        x6_1 = self.conv6_1(x6)  # 512 x 8 x 8  ----- #512 x 3 x 3 x 4
 
         # Affine transformation
-        xs = x6_1.view(-1, 512 * self.last_conv_size ** self.dim)
+        xs = x6_1.view(-1, 18432)#512 * self.last_conv_size ** self.dim)
         if self.dim == 3:
             theta = self.fc_loc(xs).view(-1, 3, 4)
         else:

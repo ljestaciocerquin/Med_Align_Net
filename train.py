@@ -28,9 +28,9 @@ from tools.visualization import visualize_3d, draw_seg_on_vol
 parser = argparse.ArgumentParser()
 
 # Training settings
-parser.add_argument('-bs', "--batch_size", type=int, default=4)
-parser.add_argument('-e', "--epochs",      type=int, default=5)
-parser.add_argument("-r", "--round",       type=int, default=20000)
+parser.add_argument('-bs', "--batch_size", type=int, default=1)
+parser.add_argument('-e', "--epochs",      type=int, default=105)
+parser.add_argument("-r", "--round",       type=int, default=20)
 parser.add_argument("-v", "--val_steps",   type=int, default=1000)
 parser.add_argument("--lr",                type=float, default=1e-4)
 parser.add_argument('--lr_scheduler', default='step', type=str, choices=['linear', 'step', 'cosine'], help='lr scheduler')
@@ -251,7 +251,7 @@ def main(args):
             scheduler.load_state_dict(optim_state['scheduler_state_dict'])
             print("Continue training from checkpoint from epoch {} iter {}".format(start_epoch, start_iter))
     # NOTE dataloader
-    num_worker = min(8, args.batch_size)
+    num_worker = 0#min(8, args.batch_size)
     torch.manual_seed(3749)
     if dist.is_initialized():
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True)
@@ -609,6 +609,11 @@ def main(args):
                             wandb.log({f'val/{k}': wandb.Image(visualize_3d(im[0, 0]), caption=k)}, step=epoch * len(train_loader) + iteration)
 
             if iteration % ckp_freq == 0:
+                print('No cerooooooooooooooooooooooooooooo')
+                if not args.debug:
+                    print('No debu activated!')
+                if not os.path.exists('./ckp/model_wts/'+run_id):
+                    print('No Path!!!!')
                 if not args.debug and not os.path.exists('./ckp/model_wts/'+run_id):
                     os.makedirs('./ckp/model_wts/'+ run_id)
 
