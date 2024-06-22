@@ -47,8 +47,8 @@ parser.add_argument('-ct', '--continue_training',    action='store_true')
 parser.add_argument('--ctt', '--continue_training_this', type=lambda x: os.path.realpath(x), default=None)
 
 # Dataset settings
-parser.add_argument('-d', '--dataset',     type=str, default='/data/groups/beets-tan/l.estacio/lung_data/LungCT/LungCT_dataset.json', help='Specifies a data config')
-parser.add_argument('-rd', '--root_dir',   type=str, default='/data/groups/beets-tan/l.estacio/lung_data/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-d', '--dataset',     type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
+parser.add_argument('-rd', '--root_dir',   type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
 parser.add_argument('-tm', '--task_mode',  type=str, default='train', help='Specifies the task to perform: train|val|test')
 parser.add_argument('-ic', '--in_channel', type=int, default=2,  help='Input channel number')
 parser.add_argument('-g', '--gpu',         type=str, default='', help='GPU to use')

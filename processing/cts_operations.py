@@ -324,14 +324,14 @@ class ToNumpyArray(TransformProcessor):
         super(ToNumpyArray, self).__init__()
 
     def __call__(self, image):
-        image     = sitk.GetArrayFromImage(image)
+        image     = np.moveaxis(sitk.GetArrayFromImage(image), 0, -1)
         if self.add_batch_dim:
             image = image[None]
         if self.add_singleton_dim:
             image = image[..., None]
         return image
-   
-    
+
+
 class ToLungWindowLevelNormalization(TransformProcessor):
     def __init__(self):
         # Lung tissue typically falls within a specific range of Hounsfield Units. 

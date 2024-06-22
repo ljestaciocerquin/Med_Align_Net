@@ -7,7 +7,7 @@ import sys
 sys.path.append("..")
 from processing.cts_processors import ScanProcessor
 from processing.cts_operations import ReadVolume
-from processing.cts_operations import PadAndCropTo
+from processing.cts_operations import ToNumpyArray
 from processing.cts_operations import ToLungWindowLevelNormalization
 
 class RawData():
@@ -18,8 +18,8 @@ class RawData():
         self.mode      = mode
         self.transform = transform
         self.inp_dtype = torch.float32
-        self.loader    = self.__init_loader()
-        self.loader_op = self.__init_operations()
+        self.scan_loader  = self.__init_scan_loader()
+        self.label_loader = self.__init_label_loader()
         
         # We didn't consider registration_val since they are the three first elements of the training dataset
         # This 3 elements have landmarks information
@@ -29,14 +29,17 @@ class RawData():
             'test' : 'test'
         }
         
-        if self.mode in mode_mapping:
-            data = data_info[mode_mapping[self.mode]]
-        else:
-            raise ValueError('mode can only be train, or test')
+        if self.mode not in mode_mapping:
+            raise ValueError('mode can only be train, val, or test')
         
-        self.data = self.get_pairs_with_gt(data)
-        if self.mode=='val': 
-            self.data = self.data[:3]
+        data = data_info[mode_mapping[self.mode]]
+        
+        if self.mode == 'test':
+            self.data = self.get_pairs_with_gt_test(data)
+        else:
+            self.data = self.get_pairs_with_gt(data)
+            if self.mode == 'val':
+                self.data = self.data[:3]
             
         self.add_root_dir_to_paths()
     
@@ -57,6 +60,20 @@ class RawData():
         return pairs
     
     
+    def get_pairs_with_gt_test(self, data):
+        pairs = []
+        # Iterate over data to create pairs
+        for i in range(0, len(data), 2):
+            fix_image = data[i]
+            mov_image = data[i + 1]
+            
+            pairs.append({
+                'fix': fix_image,
+                'mov': mov_image
+            })
+        return pairs
+    
+    
     def add_root_dir_to_paths(self):
         for pair in self.data:
             for key, value in pair.items():
@@ -71,13 +88,14 @@ class RawData():
         kps = pd.read_csv(file, header=None).values.astype(int)
         return kps
         
-    def __init_loader(self):
+    def __init_label_loader(self):
         return ScanProcessor(
             ReadVolume(),
+            ToNumpyArray()
         )
         
               
-    def __init_operations(self):
+    def __init_scan_loader(self):
         return ScanProcessor(
             ReadVolume(),
             ToLungWindowLevelNormalization()
@@ -91,40 +109,31 @@ class RawData():
     def __getitem__(self, idx: int):
         
         ret = {}
-        if self.mode == 'train':
-            ret['img1_path']     = self.data[idx]['fix']['image']
-            ret['img2_path']     = self.data[idx]['mov']['image']
-            voxel1        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
-            voxel2        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
-            segmentation1 = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
-            segmentation2 = torch.from_numpy(self.loader_op(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
-            kps1          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
-            kps2          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
-            ret['voxel1']        = voxel1[None, :]
-            ret['voxel2']        = voxel2[None, :]
-            ret['segmentation1'] = segmentation1[None, :]
-            ret['segmentation2'] = segmentation2[None, :]
-            ret['kps1']          = kps1
-            ret['kps2']          = kps2
-            
+
+        voxel1        = torch.from_numpy(self.scan_loader(self.data[idx]['fix']['image'])).type(self.inp_dtype)
+        voxel2        = torch.from_numpy(self.scan_loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
+        segmentation1 = torch.from_numpy(self.label_loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
+        segmentation2 = torch.from_numpy(self.label_loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
+        kps1          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
+        kps2          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
         
-        else:
-            ret['img1_path']     = self.data[idx]['fix']['image']
-            ret['img2_path']     = self.data[idx]['mov']['image']
-            #ret['img1']          = self.loader(self.data[idx]['fix']['image'])
-            #ret['img2']          = self.loader(self.data[idx]['mov']['image'])
-            ret['voxel1']        = torch.from_numpy(self.loader_op(self.data[idx]['fix']['image'])).type(self.inp_dtype)
-            ret['voxel2']        = torch.from_numpy(self.loader_op(self.data[idx]['mov']['image'])).type(self.inp_dtype)
-            ret['segmentation1'] = torch.from_numpy(self.loader_op(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
-            ret['segmentation2'] = torch.from_numpy(self.loader_op(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
-            ret['kps1']          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
-            ret['kps2']          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
-            ret['lmk1']          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['landmarks']))
-            ret['lmk2']          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['landmarks']))
-        #print(ret) 
+        ret['img1_path']     = self.data[idx]['fix']['image']
+        ret['img2_path']     = self.data[idx]['mov']['image']
+        ret['voxel1']        = voxel1[None, :]
+        ret['voxel2']        = voxel2[None, :]
+        ret['segmentation1'] = segmentation1[None, :]
+        ret['segmentation2'] = segmentation2[None, :]
+        ret['kps1']          = kps1
+        ret['kps2']          = kps2
+        
+        if self.mode == 'val':
+            lmks1 = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['landmarks']))
+            lmks2 = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['landmarks']))
+            ret['lmks1'] = lmks1
+            ret['lmks2'] = lmks2
+
         return ret
-        
-        
+            
         
  
 class Data(RawData, Dataset):
@@ -142,12 +151,12 @@ from tools.visualization import plot_sample_data
 import matplotlib.pyplot as plt
 if __name__  == '__main__':
     data_file = '/data/groups/beets-tan/l.estacio/lung_data/LungCT/LungCT_dataset.json'
-    root_dir  = '/data/groups/beets-tan/l.estacio/lung_data/LungCT/'
+    root_dir  = '/processing/l.estacio/LungCT/'
 
 
     data      = Data(data_file, root_dir=root_dir, mode='val')
     print(len(data))
-    plot_sample_data(data[0], slide=128, save_path='./128_.png')
-    #print(data[0])
+    #plot_sample_data(data[0], slide=128, save_path='./128_.png')
+    print(data[0])
 
 # %%
