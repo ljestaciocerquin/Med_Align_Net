@@ -2,8 +2,8 @@
 #SBATCH --time=1-00:00:00                        # Time limit hrs:min:sec
 #SBATCH --job-name=lung_vxm                    # Job name
 #SBATCH --qos=a6000_qos
-#SBATCH --partition=a6000                        # Partition
-#SBATCH --nodelist=galileo                    # Node name
+#SBATCH --partition=rtx8000                        # Partition
+#SBATCH --nodelist=roentgen                    # Node name
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=10

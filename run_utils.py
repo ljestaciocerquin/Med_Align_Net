@@ -34,8 +34,9 @@ def build_precompute(model, dataset, cfg):
 
 
 def read_cfg(model_path):
+    print('Model Path:', model_path)
     # Traverse up the directory tree until we find the folder where the model is saved
-    while 'model_wts' in model_path:
+    while 'model_wts' in str(model_path):
         model_path = pa(model_path).parent
     # Get the model name
     name     = pa(model_path).stem.split('_')[-1]

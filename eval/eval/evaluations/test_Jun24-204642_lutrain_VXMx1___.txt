@@ -1,0 +1,19 @@
+id1                            id2                            avg_dice     dice_unknown std_jac      Jleq0        tl1_ratio    tl2_ratio    l1l2_ratio  
+/processing/l.estacio/LungCT/imagesTs/LungCT_0021_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0021_0001.nii.gz 0.9152       0.9152       0.8556       0.0001       0.0000       0.0000       0.8644      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0022_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0022_0001.nii.gz 0.9227       0.9227       0.9900       0.0007       0.0000       0.0000       0.8857      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0023_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0023_0001.nii.gz 0.8992       0.8992       0.8923       0.0007       0.0000       0.0000       0.8021      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0024_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0024_0001.nii.gz 0.9276       0.9276       0.8510       0.0001       0.0000       0.0000       0.8963      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0025_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0025_0001.nii.gz 0.9139       0.9139       1.1614       0.0001       0.0000       0.0000       0.7744      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0026_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0026_0001.nii.gz 0.9183       0.9183       1.2955       0.0004       0.0000       0.0000       0.6812      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0027_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0027_0001.nii.gz 0.9228       0.9228       1.0804       0.0004       0.0000       0.0000       0.7551      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0028_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0028_0001.nii.gz 0.8800       0.8800       1.2817       0.0017       0.0000       0.0000       0.8716      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0029_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0029_0001.nii.gz 0.9145       0.9145       0.6380       0.0000       0.0000       0.0000       0.8610      
+/processing/l.estacio/LungCT/imagesTs/LungCT_0030_0000.nii.gz /processing/l.estacio/LungCT/imagesTs/LungCT_0030_0001.nii.gz 0.9014       0.9014       0.9136       0.0012       0.0000       0.0000       0.8859      
+Summary
+Dice score: 0.9115697741508484 (0.0)
+Jleq0: 0.0005434898478686609 (0.0005217247873314081)
+dice_unknown: 0.9115697741508484 (0.013541723601520061)
+l1l2_ratio: 0.8277760744094849 (0.067864790558815)
+std_jac: 0.9959639310836792 (0.19806447625160217)
+tl1_ratio: 0.0 (0.0)
+tl2_ratio: 0.0 (0.0)
