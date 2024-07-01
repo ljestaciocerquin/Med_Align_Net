@@ -4,4 +4,4 @@ wandb/
 notebooks/test_parameters.ipynb
 logs/
 eval/__pycache__/
-eval/evaluations/
+eval/eval/evaluations/
