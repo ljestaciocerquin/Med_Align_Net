@@ -182,7 +182,7 @@ def main(args):
             out['warped'] = warped[-1].detach().cpu()
             out['flow']   = agg_flows[-1].detach().cpu()
             out['wseg2']  = w_seg2.detach().cpu()
-            save_outputs_as_nii_format(out)
+            save_outputs_as_nii_format(out, iteration)
             
             # results["id1"].extend(id1)
             # results["id2"].extend(id2)

@@ -186,16 +186,32 @@ def draw_seg_on_vol(data, lb, if_norm=True, alpha=0.3, colors=["green", "red", "
     return torch.stack(res)/255
 
 
-def save_outputs_as_nii_format(out):
-    id1   = out['img1_p']
-    id2   = out['img2_p']
+def save_outputs_as_nii_format(out, img_id):
+    itk_img1 = sitk.ReadImage(out['img1_p'])
+    itk_img2 = sitk.ReadImage(out['img2_p'])
+    img1  = np.squeeze(convert_tensor_to_numpy(out['img1']), axis=(0,1))
+    img2  = np.squeeze(convert_tensor_to_numpy(out['img2']), axis=(0,1))   
+    seg1  = np.squeeze(convert_tensor_to_numpy(out['seg1']), axis=(0,1))  
+    seg2  = np.squeeze(convert_tensor_to_numpy(out['seg2']), axis=(0,1))  
+    w_img = np.squeeze(convert_tensor_to_numpy(out['warped']), axis=(0,1)) 
+    w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
+    flow  = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  
+    flow  = np.linalg.norm(flow, axis=0)
     
-    img1  = convert_tensor_to_numpy(out['img1'])
-    img2  = out['img2']   
-    seg1  = out['seg1']  
-    seg2  = out['seg2']  
-    w_img = out['warped'] 
-    flow  = out['flow']   
-    w_seg = out['wseg2']  
-    print(type(id1), id1)
-    print(type(img1), img1.shape)
+    
+    img1  = convert_nda_to_itk(img1, itk_img1)
+    img2  = convert_nda_to_itk(img2, itk_img2)   
+    seg1  = convert_nda_to_itk(seg1, itk_img1)
+    seg2  = convert_nda_to_itk(seg2, itk_img2)  
+    w_img = convert_nda_to_itk(w_img, itk_img1) 
+    w_seg = convert_nda_to_itk(w_seg, itk_img1)  
+    flow  = convert_nda_to_itk(flow, itk_img1) 
+      
+    path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/vxm/' + str(img_id) + '_'
+    sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
+    sitk.WriteImage(img2, path_to_save + 'img2.nii.gz')
+    sitk.WriteImage(seg1, path_to_save + 'seg1.nii.gz')
+    sitk.WriteImage(seg2, path_to_save + 'seg2.nii.gz')
+    sitk.WriteImage(w_img, path_to_save + 'w_img.nii.gz')
+    sitk.WriteImage(w_seg, path_to_save + 'w_seg.nii.gz')
+    sitk.WriteImage(flow, path_to_save + 'flow.nii.gz')
