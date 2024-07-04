@@ -172,6 +172,17 @@ def main(args):
             results['seg1'].extend(seg1.detach().cpu())
             results['seg2'].extend(seg2.detach().cpu())
             
+            out = { }
+            out['img1_p'] = id1[0]
+            out['img2_p'] = id2[0]
+            out['img1']   = fixed.detach().cpu()
+            out['img2']   = moving.detach().cpu()
+            out['seg1']   = seg1.detach().cpu()
+            out['seg2']   = seg2.detach().cpu()
+            out['warped'] = warped[-1].detach().cpu()
+            out['flow']   = agg_flows[-1].detach().cpu()
+            out['wseg2']  = w_seg2.detach().cpu()
+            save_outputs_as_nii_format(out)
             
             # results["id1"].extend(id1)
             # results["id2"].extend(id2)

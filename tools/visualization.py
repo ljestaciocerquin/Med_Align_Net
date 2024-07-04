@@ -3,6 +3,7 @@ import numpy as np
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 from   tools.utils import convert_tensor_to_numpy
+from   tools.utils import convert_nda_to_itk
 from torchvision.utils import make_grid, save_image, draw_segmentation_masks
 
 
@@ -184,3 +185,17 @@ def draw_seg_on_vol(data, lb, if_norm=True, alpha=0.3, colors=["green", "red", "
                         ))
     return torch.stack(res)/255
 
+
+def save_outputs_as_nii_format(out):
+    id1   = out['img1_p']
+    id2   = out['img2_p']
+    
+    img1  = convert_tensor_to_numpy(out['img1'])
+    img2  = out['img2']   
+    seg1  = out['seg1']  
+    seg2  = out['seg2']  
+    w_img = out['warped'] 
+    flow  = out['flow']   
+    w_seg = out['wseg2']  
+    print(type(id1), id1)
+    print(type(img1), img1.shape)
