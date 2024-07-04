@@ -138,7 +138,7 @@ def main(args):
         seg1, seg2 = data['segmentation1'].float(), data['segmentation2'].float()
 
         fixed, moving = data['voxel1'], data['voxel2']
-        id1, id2 = data['img1_path'], data['img2_path']
+        id1, id2      = data['img1_path'], data['img2_path']
         if args.use_ants:
             pred           = ants_pred(fixed, moving, seg2)
             w_seg2, warped = pred['w_seg2'], pred['warped']
@@ -146,7 +146,7 @@ def main(args):
             warped         = torch.from_numpy(warped).float().cuda()
         else:
             with torch.no_grad():
-                fixed = fixed.cuda()
+                fixed  = fixed.cuda()
                 moving = moving.cuda()
                 seg2 = seg2.cuda()
                 if cfg_training.masked  in ['soft' , 'hard']:
@@ -157,7 +157,7 @@ def main(args):
                 warped_, flows, agg_flows, affine_params = model(fixed, moving_, return_affine=True,)
 
             warped = [model.reconstruction(moving, agg_flows[-1].float())]
-            w_seg2 = model.reconstruction(seg2.float(), agg_flows[-1].float())
+            w_seg2 =  model.reconstruction(seg2.float(), agg_flows[-1].float(), mode='nearest')
 
         if args.save_pkl:
             # now we just save the last flow
