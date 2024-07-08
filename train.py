@@ -609,11 +609,6 @@ def main(args):
                             wandb.log({f'val/{k}': wandb.Image(visualize_3d(im[0, 0]), caption=k)}, step=epoch * len(train_loader) + iteration)
 
             if iteration % ckp_freq == 0:
-                print('No cerooooooooooooooooooooooooooooo')
-                if not args.debug:
-                    print('No debu activated!')
-                if not os.path.exists('./ckp/model_wts/'+run_id):
-                    print('No Path!!!!')
                 if not args.debug and not os.path.exists('./ckp/model_wts/'+run_id):
                     os.makedirs('./ckp/model_wts/'+ run_id)
 

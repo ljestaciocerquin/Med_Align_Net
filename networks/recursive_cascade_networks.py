@@ -37,8 +37,7 @@ class RecursiveCascadeNetwork(nn.Module):
             if base_network != 'TSM':
                 self.stems.append(VTNAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
             else:
-                #---------->self.stems.append(TSMAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
-                self.stems.append(VTNAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
+                self.stems.append(TSMAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
         assert base_network in BASE_NETWORK
         base = eval(base_network)
         for i in range(n_cascades):
