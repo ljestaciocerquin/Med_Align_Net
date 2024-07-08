@@ -37,7 +37,7 @@ parser.add_argument('--lr_scheduler', default='step', type=str, choices=['linear
 parser.add_argument('-aug', '--augment',   type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], default=False, help='Augment data')
 parser.add_argument('--training_scheme',   type=lambda x:int(x) if x.isdigit() else x, default='', help='Specifies a training scheme')
 parser.add_argument('-vs', '--val_scheme', type=lambda x:int(x) if x.isdigit() else x, default='', help='Specifies a validation scheme')
-parser.add_argument('-wb', '--use_wandb', type=bool, default=False, help='Use Weights and Biases for logging')
+parser.add_argument('-wb', '--use_wandb', type=bool, default=True, help='Use Weights and Biases for logging')
 parser.add_argument('--debug', action='store_true', help="run the script without saving files")
 
 # Checkpoint settings

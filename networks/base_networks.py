@@ -393,37 +393,32 @@ class VTN(nn.Module):
         deconv5    = self.deconv5(x6_1)                             # 256 x 16 x 16     # 256 x 6 x 6 x 8
         # Funtion to get the same size in dimension 4 
         # in order to be able to concat the tensors. 
-        print('Heyyyy, this is my size: ', x5_1.size(-1))
         tensors    = get_same_dim_tensors([x5_1, deconv5, upsamp6to5], x5_1.size(-1), -1)
-        concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 515 x 6 x 6 x 8
+        concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 515 x 6 x 6 x 7
 
-        pred5      = self.pred5(concat5)                            # 2 x 16 x 16       #   3 x 6 x 6 x 8
-        upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #   3 x 12 x 12 x 16
-        deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  128 x 12 x 12 x 16 
+        pred5      = self.pred5(concat5)                            # 2 x 16 x 16       #   
+        upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #   
+        deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  
         tensors    = get_same_dim_tensors([x4_1, deconv4, upsamp5to4], x4_1.size(-1), -1)
-        concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 259 x 12 x 12 x 16
+        concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 
 
         pred4      = self.pred4(concat4)                            # 2 x 32 x 32
         upsamp4to3 = self.upsamp4to3(pred4)                         # 2 x 64 x 64
         deconv3    = self.deconv3(concat4)                          # 64 x 64 x 64
         concat3    = torch.cat([x3_1, deconv3, upsamp4to3], dim=1)  # 130 x 64 x 64
-        print('concat3: ', concat3.shape)
 
         pred3      = self.pred3(concat3)                            # 2 x 63 x 64
         upsamp3to2 = self.upsamp3to2(pred3)                         # 2 x 128 x 128
         deconv2    = self.deconv2(concat3)                          # 32 x 128 x 128
-        concat2    = torch.cat([x2, deconv2, upsamp3to2], dim=1)                      # 66 x 128 x 128
-        print('concat2: ', concat2.shape)
+        concat2    = torch.cat([x2, deconv2, upsamp3to2], dim=1)    # 66 x 128 x 128
         
         
         pred2      = self.pred2(concat2)                            # 2 x 128 x 128
         upsamp2to1 = self.upsamp2to1(pred2)                         # 2 x 256 x 256
         deconv1    = self.deconv1(concat2)                          # 16 x 256 x 256
         concat1    = torch.cat([x1, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256
-        print('concat1: ', concat1.shape)
 
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
-        print('pred0: ', pred0.shape)
 
         return pred0 * 20 * self.flow_multiplier                    # why the 20?
         
