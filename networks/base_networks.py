@@ -53,6 +53,52 @@ def upconvolveLeakyReLU(in_channels, out_channels, kernel_size, stride, dim=2):
     return nn.Sequential(LeakyReLU(0.1), upconvolve(in_channels, out_channels, kernel_size, stride, dim=dim))
 
 
+# This function requires improvement to handle different sizes in different dimensions!
+def pad_tensors(tensors, dim_to_pad):
+    # Determine the max size along the given dimension
+    max_size = max(t.size(dim_to_pad) for t in tensors)
+    
+    # Pad the tensors to match the max size along the specified dimension
+    padded_tensors = []
+    for t in tensors:
+        padding_size = list(t.shape)
+        padding_size[dim_to_pad] = max_size - t.size(dim_to_pad)
+        if padding_size[dim_to_pad] > 0:
+            padding = (0, padding_size[dim_to_pad])  # Padding tuple for the given dimension
+            for _ in range(len(t.shape) - dim_to_pad - 1):
+                padding = (0, 0) + padding  # Pad other dimensions with 0
+            t = torch.nn.functional.pad(t, padding)
+        padded_tensors.append(t)
+    return padded_tensors
+
+
+def pad_or_truncate(tensor, target_size, dim):
+    """
+    Pad or truncate a tensor along the specified dimension to the target size.
+    """
+    current_size = tensor.size(dim)
+    if current_size > target_size:
+        # Truncate the tensor
+        slices = [slice(None)] * tensor.ndimension()
+        slices[dim] = slice(0, target_size)
+        return tensor[tuple(slices)]
+    elif current_size < target_size:
+        # Pad the tensor
+        pad_size = [(0, 0)] * tensor.ndimension()
+        pad_size[dim] = (0, target_size - current_size)
+        pad_size = [item for sublist in pad_size for item in sublist]  # Flatten list
+        return torch.nn.functional.pad(tensor, pad_size)
+    else:
+        return tensor
+
+def get_same_dim_tensors(tensors, target_size, dim):
+    """
+    Process a list of tensors to ensure they all have the target size in the specified dimension.
+    """
+    return [pad_or_truncate(t, target_size, dim) for t in tensors]
+
+
+
 def default_unet_features():
     nb_features = [
         [16, 32, 32, 32],
@@ -276,7 +322,113 @@ class VXM(nn.Module):
         return returns if len(returns)>1 else returns[0]
 
 
-#
+class VTN(nn.Module):
+    """
+    A PyTorch implementation of the VTN network. The network is a UNet.
+
+    Args:
+        im_size (tuple): The size of the input image.
+        flow_multiplier (float): The flow multiplier.
+        channels (int): The number of channels in the first convolution. The following convolution channels will be [2x, 4x, 8x, 16x] of this value.
+        in_channels (int): The number of input channels.
+    """
+    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=2, hyper_net=None):
+        super(VTN, self).__init__()
+        self.flow_multiplier = flow_multiplier
+        self.channels        = channels
+        self.dim = dim       = len(im_size)
+        
+        # Network architecture
+        # The first convolution's input is the concatenated image
+        self.conv1   = convolveLeakyReLU(  in_channels,      channels, 3, 2, dim=dim)
+        self.conv2   = convolveLeakyReLU(     channels, 2  * channels, 3, 2, dim=dim)
+        self.conv3   = convolveLeakyReLU(2  * channels, 4  * channels, 3, 2, dim=dim)
+        self.conv3_1 = convolveLeakyReLU(4  * channels, 4  * channels, 3, 1, dim=dim)
+        self.conv4   = convolveLeakyReLU(4  * channels, 8  * channels, 3, 2, dim=dim)
+        self.conv4_1 = convolveLeakyReLU(8  * channels, 8  * channels, 3, 1, dim=dim)
+        self.conv5   = convolveLeakyReLU(8  * channels, 16 * channels, 3, 2, dim=dim)
+        self.conv5_1 = convolveLeakyReLU(16 * channels, 16 * channels, 3, 1, dim=dim)
+        self.conv6   = convolveLeakyReLU(16 * channels, 32 * channels, 3, 2, dim=dim)
+        self.conv6_1 = convolveLeakyReLU(32 * channels, 32 * channels, 3, 1, dim=dim)
+
+        self.pred6      = convolve(32 * channels, dim, 3, 1, dim=dim)
+        self.upsamp6to5 = upconvolve(dim, dim, 4, 2, dim=dim)
+        self.deconv5    = upconvolveLeakyReLU(32 * channels, 16 * channels, 4, 2, dim=dim)
+
+        self.pred5      = convolve(32 * channels + dim, dim, 3, 1, dim=dim)  # 514 = 32 * channels + 1 + 1
+        self.upsamp5to4 = upconvolve(dim, dim, 4, 2, dim=dim)
+        self.deconv4    = upconvolveLeakyReLU(32 * channels + dim, 8 * channels, 4, 2, dim=dim)
+
+        self.pred4      = convolve(16 * channels + dim, dim, 3, 1, dim=dim)  # 258 = 64 * channels + 1 + 1
+        self.upsamp4to3 = upconvolve(dim, dim, 4, 2, dim=dim)
+        self.deconv3    = upconvolveLeakyReLU(16 * channels + dim,  4 * channels, 4, 2, dim=dim)
+
+        self.pred3      = convolve(8 * channels + dim, dim, 3, 1, dim=dim)
+        self.upsamp3to2 = upconvolve(dim, dim, 4, 2, dim=dim)
+        self.deconv2    = upconvolveLeakyReLU(8 * channels + dim, 2 * channels, 4, 2, dim=dim)
+
+        self.pred2      = convolve(4 * channels + dim, dim, 3, 1, dim=dim)
+        self.upsamp2to1 = upconvolve(dim, dim, 4, 2, dim=dim)
+        self.deconv1    = upconvolveLeakyReLU(4 * channels + dim, channels, 4, 2, dim=dim)
+
+        self.pred0      = upconvolve(2 * channels + dim, dim, 4, 2, dim=dim)
+        
+    
+    def forward(self, fixed, moving, return_neg = False, hyp_tensor=None):
+        
+        concat_image = torch.cat((fixed, moving), dim=1)    # 2 x 512 x 512         #   2 x 192 x 192 x 208
+        x1   = self.conv1(concat_image)                     # 16 x 256 x 256        #  16 x  96 x  96 x 104
+        x2   = self.conv2(x1)                               # 32 x 128 x 128        #  32 x  48 x  48 x  52
+        x3   = self.conv3(x2)                               # 64 x 64 x 64          #  64 x  24 x  24 x  26 
+        x3_1 = self.conv3_1(x3)                             # 64 x 64 x 64          #  64 x  24 x  24 x  26 
+        x4   = self.conv4(x3_1)                             # 128 x 32 x 32         # 128 x  12 x  12 x  13
+        x4_1 = self.conv4_1(x4)                             # 128 x 32 x 32         # 128 x  12 x  12 x  13
+        x5   = self.conv5(x4_1)                             # 256 x 16 x 16         # 256 x   6 x   6 x   7
+        x5_1 = self.conv5_1(x5)                             # 256 x 16 x 16         # 256 x   6 x   6 x   7
+        x6   = self.conv6(x5_1)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
+        x6_1 = self.conv6_1(x6)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
+
+        pred6      = self.pred6(x6_1)                               # 2 x 8 x 8         #   3 x 3 x 3 x 4
+        upsamp6to5 = self.upsamp6to5(pred6)                         # 2 x 16 x 16       #   3 x 6 x 6 x 8
+        deconv5    = self.deconv5(x6_1)                             # 256 x 16 x 16     # 256 x 6 x 6 x 8
+        # Funtion to get the same size in dimension 4 
+        # in order to be able to concat the tensors. 
+        print('Heyyyy, this is my size: ', x5_1.size(-1))
+        tensors    = get_same_dim_tensors([x5_1, deconv5, upsamp6to5], x5_1.size(-1), -1)
+        concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 515 x 6 x 6 x 8
+
+        pred5      = self.pred5(concat5)                            # 2 x 16 x 16       #   3 x 6 x 6 x 8
+        upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #   3 x 12 x 12 x 16
+        deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  128 x 12 x 12 x 16 
+        tensors    = get_same_dim_tensors([x4_1, deconv4, upsamp5to4], x4_1.size(-1), -1)
+        concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 259 x 12 x 12 x 16
+
+        pred4      = self.pred4(concat4)                            # 2 x 32 x 32
+        upsamp4to3 = self.upsamp4to3(pred4)                         # 2 x 64 x 64
+        deconv3    = self.deconv3(concat4)                          # 64 x 64 x 64
+        concat3    = torch.cat([x3_1, deconv3, upsamp4to3], dim=1)  # 130 x 64 x 64
+        print('concat3: ', concat3.shape)
+
+        pred3      = self.pred3(concat3)                            # 2 x 63 x 64
+        upsamp3to2 = self.upsamp3to2(pred3)                         # 2 x 128 x 128
+        deconv2    = self.deconv2(concat3)                          # 32 x 128 x 128
+        concat2    = torch.cat([x2, deconv2, upsamp3to2], dim=1)                      # 66 x 128 x 128
+        print('concat2: ', concat2.shape)
+        
+        
+        pred2      = self.pred2(concat2)                            # 2 x 128 x 128
+        upsamp2to1 = self.upsamp2to1(pred2)                         # 2 x 256 x 256
+        deconv1    = self.deconv1(concat2)                          # 16 x 256 x 256
+        concat1    = torch.cat([x1, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256
+        print('concat1: ', concat1.shape)
+
+        pred0      = self.pred0(concat1)                            # 2 x 512 x 512
+        print('pred0: ', pred0.shape)
+
+        return pred0 * 20 * self.flow_multiplier                    # why the 20?
+        
+
+
 
 class VTNAffineStem(nn.Module):
     """
