@@ -7,6 +7,9 @@ from   torch.distributions.normal import Normal
 from   . import layers
 from   . import hyper_net as hn
 
+
+from networks.TSM.TransMorph          import CONFIGS as cfg_tsm,   TransMorph as tsm
+from networks.TSM_A.TransMorph_affine import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
 BASE_NETWORK = ['VTN', 'VXM', 'TSM']
 
 def conv(dim=2):
@@ -548,3 +551,102 @@ class VTNAffineStem(nn.Module):
         flow = self.create_flow(theta, moving.size())
         # theta: the affine param
         return flow, {'theta': theta}
+    
+
+
+class TSMAffineStem(nn.Module):
+    """
+    TSM affine stem. This is the first part of the TSM network.
+    Credit for https://github.com/junyuchen245/TransMorph_Transformer_for_Medical_Image_Registration.git.
+
+    Args:
+        dim (int): Dimension of the input image.
+        channels (int): Number of channels in the first convolution.
+        flow_multiplier (float): Multiplier for the flow output.
+        im_size (int): Size of the input image.
+        in_channels (int): Number of channels in the input image.
+    """
+    def __init__(self, dim=1, channels=16, flow_multiplier=1., im_size=512, in_channels=2):
+        super(TSMAffineStem, self).__init__()
+        config = cfg_tsm_a['TransMorph-Affine']
+        # AffInfer = .ApplyAffine()
+        '''
+        config = ml_collections.ConfigDict()
+        config.if_transskip = True
+        config.if_convskip = True
+        config.patch_size = 4
+        config.in_chans = 2
+        config.embed_dim = 48
+        config.depths = (2, 2, 4, 2)
+        config.num_heads = (4, 4, 8, 8)
+        config.window_size = (5, 6, 7)
+        config.mlp_ratio = 4
+        config.pat_merg_rf = 4
+        config.qkv_bias = False
+        config.drop_rate = 0
+        config.drop_path_rate = 0.3
+        config.ape = False
+        config.spe = False
+        config.rpe = True
+        config.patch_norm = True
+        config.use_checkpoint = False
+        config.out_indices = (0, 1, 2, 3)
+        config.reg_head_chan = 16
+        config.img_size = (160, 192, 224)'''
+        config.in_chans = in_channels
+        config.img_size = im_size if isinstance(im_size, (list, tuple)) else ((im_size, im_size, im_size) if dim == 3 else (im_size, im_size))
+        self.model = tsm_a(config)
+        self.flow_multiplier = flow_multiplier
+        vectors = [torch.arange(0, s) for s in config.img_size]
+        grids = torch.meshgrid(vectors, indexing='ij')
+        grid = torch.stack(grids)
+        grid = torch.unsqueeze(grid, 0)
+        grid = grid.type(torch.FloatTensor)
+
+        self.register_buffer('grid', grid, persistent=False)
+        self.cfg = config
+
+    def cr_flow(self, theta, size):
+        shape = size[2:]
+        flow = F.affine_grid(theta-torch.eye(len(shape), len(shape)+1, device=theta.device), size, align_corners=False)
+        if len(shape) == 2:
+            flow = flow[..., [1, 0]]
+            flow = flow.permute(0, 3, 1, 2)
+        elif len(shape) == 3:
+            flow = flow[..., [2, 1, 0]]
+            flow = flow.permute(0, 4, 1, 2, 3)
+        flow = flow*flow.new_tensor(shape).view(-1, *[1 for _ in shape])/2
+        return flow
+
+    def forward(self, fixed, moving):
+        """
+        Calculate the affine transformation parameters
+
+        Returns:
+            flow: the flow field
+            theta: dict, with the affine transformation parameters
+        """
+        concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512
+        mat = self.model(concat_image)
+        theta = mat
+        flow = self.cr_flow(theta, moving.size())
+        # theta: the affine param
+        return flow, {'theta': theta}
+
+class TSM(nn.Module):
+    '''
+    TransfMorph model. Credit for https://github.com/junyuchen245/TransMorph_Transformer_for_Medical_Image_Registration.git.
+    '''
+    def __init__(self, im_size=(128,128,128), flow_multiplier=1., in_channels=2):
+        super(TSM, self).__init__()
+        config = cfg_tsm['TransMorph']
+        config['img_size'] = im_size
+        config['in_chans'] = in_channels
+        self.model = tsm(config)
+        self.flow_multiplier = flow_multiplier
+
+    def forward(self, fixed, moving, return_neg=False):
+        x_in = torch.cat((fixed, moving), dim=1)
+        flow = self.model(x_in)
+        flow = self.flow_multiplier*flow
+        return flow * self.flow_multiplier
