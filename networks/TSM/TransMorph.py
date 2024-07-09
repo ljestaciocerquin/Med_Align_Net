@@ -274,8 +274,8 @@ class PatchMerging(nn.Module):
         x: B, H*W*T, C
         """
         B, L, C = x.shape
-        assert L == H * W * T, "input feature has wrong size"
-        assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}) are not even."
+        #assert L == H * W * T, "input feature has wrong size"
+        #assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}) are not even."
 
         x = x.view(B, H, W, T, C)
 
@@ -717,6 +717,32 @@ class Conv3dReLU(nn.Sequential):
         super(Conv3dReLU, self).__init__(conv, nm, relu)
 
 
+def pad_or_truncate(tensor, target_size, dim):
+    """
+    Pad or truncate a tensor along the specified dimension to the target size.
+    """
+    current_size = tensor.size(dim)
+    if current_size > target_size:
+        # Truncate the tensor
+        slices = [slice(None)] * tensor.ndimension()
+        slices[dim] = slice(0, target_size)
+        return tensor[tuple(slices)]
+    elif current_size < target_size:
+        # Pad the tensor
+        pad_size = [(0, 0)] * tensor.ndimension()
+        pad_size[dim] = (0, target_size - current_size)
+        pad_size = [item for sublist in pad_size for item in sublist]  # Flatten list
+        return torch.nn.functional.pad(tensor, pad_size)
+    else:
+        return tensor
+
+def get_same_dim_tensors(tensors, target_size, dim):
+    """
+    Process a list of tensors to ensure they all have the target size in the specified dimension.
+    """
+    return [pad_or_truncate(t, target_size, dim) for t in tensors]
+
+
 class DecoderBlock(nn.Module):
     def __init__(
             self,
@@ -745,7 +771,8 @@ class DecoderBlock(nn.Module):
     def forward(self, x, skip=None):
         x = self.up(x)
         if skip is not None:
-            x = torch.cat([x, skip], dim=1)
+            tensors = get_same_dim_tensors([x, skip], skip.size(-1), -1)
+            x = torch.cat(tensors, dim=1)#torch.cat([x, skip], dim=1)
         x = self.conv1(x)
         x = self.conv2(x)
         return x

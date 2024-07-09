@@ -707,6 +707,7 @@ class SwinAffine(nn.Module):
         if_transskip = config.if_transskip
         self.if_transskip = if_transskip
         embed_dim = config.embed_dim
+        
         self.transformer = SwinTransformer(patch_size=config.patch_size,
                                            in_chans=config.in_chans,
                                            embed_dim=config.embed_dim,
@@ -726,28 +727,28 @@ class SwinAffine(nn.Module):
                                            pat_merg_rf=config.pat_merg_rf,
                                            )
         self.transformer.apply(weights_init)
-        self.aff_head = nn.Linear(embed_dim*4 * 8*8*8, 100)
+        self.aff_head = nn.Linear(embed_dim*4 * 12*12*13, 100)#(embed_dim*4 * 8*8*8, 100)
         self.aff_head.weight = nn.Parameter(torch.zeros(self.aff_head.weight.shape))
         self.aff_head.bias = nn.Parameter(torch.zeros(self.aff_head.bias.shape))
         self.aff_head_f = nn.Linear(100, 3)
         self.aff_head_f.weight = nn.Parameter(torch.zeros(self.aff_head_f.weight.shape))
         self.aff_head_f.bias = nn.Parameter(torch.zeros(self.aff_head_f.bias.shape))#nn.Parameter(torch.tensor([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0], dtype=torch.float))#nn.Parameter(torch.zeros(self.aff_head_f.bias.shape))
         self.relu_aff = nn.ReLU(inplace=True)
-        self.scl_head = nn.Linear(embed_dim*4 * 8*8*8, 100)
+        self.scl_head = nn.Linear(embed_dim*4 * 12*12*13, 100)#(embed_dim*4 * 8*8*8, 100)
         self.scl_head.weight = nn.Parameter(torch.zeros(self.scl_head.weight.shape))
         self.scl_head.bias = nn.Parameter(torch.zeros(self.scl_head.bias.shape))
         self.scl_head_f = nn.Linear(100, 3)
         self.scl_head_f.weight = nn.Parameter(torch.zeros(self.scl_head_f.weight.shape))
         self.scl_head_f.bias = nn.Parameter(torch.zeros(self.scl_head_f.bias.shape))
         self.relu_scl = nn.ReLU(inplace=True)
-        self.trans_head = nn.Linear(embed_dim*4 * 8*8*8, 100)
+        self.trans_head = nn.Linear(embed_dim*4 * 12*12*13, 100)#(embed_dim*4 * 8*8*8, 100)
         self.trans_head.weight = nn.Parameter(torch.zeros(self.trans_head.weight.shape))
         self.trans_head.bias = nn.Parameter(torch.zeros(self.trans_head.bias.shape))
         self.trans_head_f = nn.Linear(100, 3)
         self.trans_head_f.weight = nn.Parameter(torch.zeros(self.trans_head_f.weight.shape))
         self.trans_head_f.bias = nn.Parameter(torch.zeros(self.trans_head_f.bias.shape))
         self.relu_trans = nn.ReLU(inplace=True)
-        self.shear_head = nn.Linear(embed_dim*4 * 8*8*8, 100)
+        self.shear_head = nn.Linear(embed_dim*4 * 12*12*13, 100)#(embed_dim*4 * 8*8*8, 100)
         self.shear_head.weight = nn.Parameter(torch.zeros(self.shear_head.weight.shape))
         self.shear_head.bias = nn.Parameter(torch.zeros(self.shear_head.bias.shape))
         self.shear_head_f = nn.Linear(100, 6)
@@ -757,7 +758,7 @@ class SwinAffine(nn.Module):
         self.affine_trans = AffineTransformer()
 
     def forward(self, x):
-        source = x[:, 0:1, :, :]
+        source = x[:, 0:1, :, :] # 2 x 192 x 192 x 208 ---> 1 x 192 x 192 x 208
         # import debugpy; debugpy.listen(5678); print('Waiting for debugger attach'); debugpy.wait_for_client(); debugpy.breakpoint()
         out = self.transformer(x)  # (B, n_patch, hidden)
         x5 = torch.flatten(out[-1], start_dim=1)

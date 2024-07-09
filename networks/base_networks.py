@@ -426,8 +426,6 @@ class VTN(nn.Module):
         return pred0 * 20 * self.flow_multiplier                    # why the 20?
         
 
-
-
 class VTNAffineStem(nn.Module):
     """
     VTN affine stem. This is the first part of the VTN network. A multi-layer convolutional network that calculates the affine transformation parameters.
@@ -626,7 +624,7 @@ class TSMAffineStem(nn.Module):
             flow: the flow field
             theta: dict, with the affine transformation parameters
         """
-        concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512
+        concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512       # 2 x 192 x 192 x 208 
         mat = self.model(concat_image)
         theta = mat
         flow = self.cr_flow(theta, moving.size())
