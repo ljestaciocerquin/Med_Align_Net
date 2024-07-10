@@ -35,6 +35,7 @@ parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Spec
 parser.add_argument('-v', '--val_subset',   type=str, default=None)
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
 parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the results as a pkl file')
+parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
 parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dice for each region')
 parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
@@ -113,7 +114,7 @@ def main(args):
         results['flow']          = []
         results['affine_params'] = []
         if args.reverse:
-            results['rev_flow'] = []
+            results['rev_flow']  = []
         results['warped'] = []
         results.update({
             "img1": [],
@@ -140,10 +141,11 @@ def main(args):
         fixed, moving = data['voxel1'], data['voxel2']
         id1, id2      = data['img1_path'], data['img2_path']
         if args.use_ants:
-            pred           = ants_pred(fixed, moving, seg2)
-            w_seg2, warped = pred['w_seg2'], pred['warped']
-            w_seg2         = torch.from_numpy(w_seg2).float().cuda()
-            warped         = torch.from_numpy(warped).float().cuda()
+            pred                      = ants_pred(fixed, moving, seg2)
+            w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
+            w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
+            warped                    = [torch.from_numpy(warped).float().cuda()]
+            agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
         else:
             with torch.no_grad():
                 fixed  = fixed.cuda()
@@ -158,7 +160,7 @@ def main(args):
 
             warped = [model.reconstruction(moving, agg_flows[-1].float())]
             w_seg2 =  model.reconstruction(seg2.float(), agg_flows[-1].float(), mode='nearest')
-
+        
         if args.save_pkl:
             # now we just save the last flow
             magg_flow = agg_flows[-1].detach().cpu()
@@ -171,6 +173,8 @@ def main(args):
             results['wseg2'].extend(w_seg2.detach().cpu())
             results['seg1'].extend(seg1.detach().cpu())
             results['seg2'].extend(seg2.detach().cpu())
+            
+        if args.save_nii:   
             
             out = { }
             out['img1_p'] = id1[0]
