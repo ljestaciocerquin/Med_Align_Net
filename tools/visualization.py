@@ -207,7 +207,7 @@ def save_outputs_as_nii_format(out, img_id):
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
     flow  = convert_nda_to_itk(flow, itk_img1) 
       
-    path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/vxm/' + str(img_id) + '_'
+    path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/ants/' + str(img_id) + '_'
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
     sitk.WriteImage(img2, path_to_save + 'img2.nii.gz')
     sitk.WriteImage(seg1, path_to_save + 'seg1.nii.gz')
