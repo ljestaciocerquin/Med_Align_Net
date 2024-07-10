@@ -1,9 +1,12 @@
+import ants
+import numpy as np
+
 def ants_pred(fixed, moving, seg2):
     """return warped and w_seg2 """
-    import ants
-    import numpy as np
-    warps = []
+    warps   = []
     w_seg2s = []
+    flows   = []
+    
     for i in range(fixed.shape[0]):
         im_fixed  = ants.from_numpy(fixed.cpu().numpy()[i,0])
         im_moving = ants.from_numpy(moving.cpu().numpy()[i,0])
@@ -12,11 +15,19 @@ def ants_pred(fixed, moving, seg2):
         warps.append(warped.numpy())
         w_seg2    = ants.apply_transforms(fixed=im_fixed, moving=ants.from_numpy(seg2.cpu().numpy()[i,0]), transformlist=reg['fwdtransforms'])
         w_seg2s.append(w_seg2.numpy())
-        # flow =
-    w_seg2 = np.array(w_seg2s)[:,None]
-    warped = np.array(warps)[:,None]
-
+        flow      = ants.image_read(reg['fwdtransforms'][0])
+        flow      = np.transpose(flow, (0, 4, 1, 2, 3))
+        flows.append(flow.numpy())
+    
+    w_seg2 = np.array(w_seg2s)[:, None]
+    warped = np.array(warps)[:, None]
+    flow   = np.array(flows)
+    
+    print('type w_seg2: ', type(w_seg2), '  shape w_seg2: ', w_seg2.shape)
+    print('type warped: ', type(warped), '  shape warped: ', warped.shape)
+    print('type flow: ', type(flow), '      shape flow: ', flow.shape)
     return {
         "warped": warped,
         "w_seg2": w_seg2,
+        "flow":   flow,
     }
