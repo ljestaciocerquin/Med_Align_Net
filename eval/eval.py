@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
 
 from _ants import ants_pred
+from _elastix import elastix_pred
 import torchvision.transforms as T
 from metrics.losses import *
 import time
@@ -39,6 +40,7 @@ parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the
 parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dice for each region')
 parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
+parser.add_argument('-ue','--use_elastix',   action='store_true', help='if use elastix to register')
 parser.add_argument('--reverse',              action='store_true', help='if reverse')
 parser.add_argument('--debug',              action='store_true', help='if debug')
 args = parser.parse_args()
@@ -142,6 +144,12 @@ def main(args):
         id1, id2      = data['img1_path'], data['img2_path']
         if args.use_ants:
             pred                      = ants_pred(fixed, moving, seg2)
+            w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
+            w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
+            warped                    = [torch.from_numpy(warped).float().cuda()]
+            agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
+        elif args.use_elastix:
+            pred                      = elastix_pred(fixed, moving, seg2)
             w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
             w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
             warped                    = [torch.from_numpy(warped).float().cuda()]
