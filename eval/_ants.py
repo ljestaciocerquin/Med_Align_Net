@@ -16,16 +16,12 @@ def ants_pred(fixed, moving, seg2):
         w_seg2    = ants.apply_transforms(fixed=im_fixed, moving=ants.from_numpy(seg2.cpu().numpy()[i,0]), transformlist=reg['fwdtransforms'])
         w_seg2s.append(w_seg2.numpy())
         flow      = ants.image_read(reg['fwdtransforms'][0])
-        flow      = np.transpose(flow, (0, 4, 1, 2, 3))
         flows.append(flow.numpy())
     
     w_seg2 = np.array(w_seg2s)[:, None]
     warped = np.array(warps)[:, None]
-    flow   = np.array(flows)
+    flow   = np.transpose(np.array(flows), (0, 4, 1, 2, 3))
     
-    print('type w_seg2: ', type(w_seg2), '  shape w_seg2: ', w_seg2.shape)
-    print('type warped: ', type(warped), '  shape warped: ', warped.shape)
-    print('type flow: ', type(flow), '      shape flow: ', flow.shape)
     return {
         "warped": warped,
         "w_seg2": w_seg2,
