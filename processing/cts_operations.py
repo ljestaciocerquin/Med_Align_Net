@@ -10,7 +10,7 @@ class ReadVolume(ReadProcessor):
     
     def __call__(self, filename):
         try:
-            image = sitk.ReadImage(fileName=filename)
+            image = sitk.ReadImage(filename)
             return image
         except:
             return None
