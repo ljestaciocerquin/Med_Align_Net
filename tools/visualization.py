@@ -186,7 +186,7 @@ def draw_seg_on_vol(data, lb, if_norm=True, alpha=0.3, colors=["green", "red", "
     return torch.stack(res)/255
 
 
-def save_outputs_as_nii_format(out, img_id):
+def save_outputs_as_nii_format(out, path_to_save='./output/'):
     itk_img1 = sitk.ReadImage(out['img1_p'])
     itk_img2 = sitk.ReadImage(out['img2_p'])
     img1  = np.squeeze(convert_tensor_to_numpy(out['img1']), axis=(0,1))
@@ -207,7 +207,7 @@ def save_outputs_as_nii_format(out, img_id):
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
     flow  = convert_nda_to_itk(flow, itk_img1) 
       
-    path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/ants/' + str(img_id) + '_'
+    
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
     sitk.WriteImage(img2, path_to_save + 'img2.nii.gz')
     sitk.WriteImage(seg1, path_to_save + 'seg1.nii.gz')
