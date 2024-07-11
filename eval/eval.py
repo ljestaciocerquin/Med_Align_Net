@@ -316,7 +316,7 @@ def main(args):
             # for k in range(len(to_ratio)):
             #     print('to_ratio for {} to {}: {:.4f}'.format(id1[k], id2[k], to_ratio[k]**2))
 
-        if not args.use_ants:
+        if not args.use_ants and not args.use_elastix:
             del fixed, moving, warped, flows, agg_flows, affine_params
         # get mean of dice class
         results['dices'].extend(np.mean(dices, axis=0))
