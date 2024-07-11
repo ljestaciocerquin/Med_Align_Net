@@ -32,6 +32,7 @@ parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disenta
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
 parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-ndir', '--nii_dir',    type=str, default='/data/groups/beets-tan/l.estacio/Med_Align_Net/', help='Directory where .nii.gz wil be stored')
 parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Specifies the task to perform: train|val|test')
 
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
@@ -98,13 +99,18 @@ def main(args):
     # "([^\/]*_\d{6}_[^\/]*)"gm
     exp_name     = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
     print('Experiment Name: ', exp_name)
-    output_fname = './eval/evaluations/{}_{}.txt'.format(args.task_mode, exp_name)
-    print('output_fname', output_fname)
+    output_fname = './results/{}_{}.txt'.format(args.task_mode, exp_name)
+    print('output_fname: ', output_fname)
     output_fname = os.path.abspath(output_fname)
-    print('will save to', output_fname)
+    print('will save to: ', output_fname)
     if not os.path.exists(output_fname):
         os.makedirs(os.path.dirname(output_fname), exist_ok=True)
-    import pdb; pdb.set_trace()
+    if args.save_nii:
+        folder_to_save_nii = args.nii_dir + exp_name + '/'
+        if not os.path.exists(folder_to_save_nii):
+            os.makedirs(os.path.dirname(folder_to_save_nii), exist_ok=True)
+        print('.nii.gz images will be saved in: ', output_fname)
+    #import pdb; pdb.set_trace()
     # stage 1 model setup
     if cfg_training.masked in ['soft', 'hard']:
         # suppose the training dataset has the same data type of eval dataset
@@ -198,7 +204,10 @@ def main(args):
             out['warped'] = warped[-1].detach().cpu()
             out['flow']   = agg_flows[-1].detach().cpu()
             out['wseg2']  = w_seg2.detach().cpu()
-            save_outputs_as_nii_format(out, iteration)
+            #path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/elastix/' + str(img_id) + '_'
+            path_to_save = folder_to_save_nii + str(iteration) + '_'
+            #import pdb; pdb.set_trace()
+            save_outputs_as_nii_format(out, path_to_save)
             
             # results["id1"].extend(id1)
             # results["id2"].extend(id2)
