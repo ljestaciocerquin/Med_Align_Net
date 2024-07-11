@@ -18,9 +18,9 @@ def ants_pred(fixed, moving, seg2):
         flow      = ants.image_read(reg['fwdtransforms'][0])
         flows.append(flow.numpy())
     
-    w_seg2 = np.array(w_seg2s)[:, None]
-    warped = np.array(warps)[:, None]
-    flow   = np.transpose(np.array(flows), (0, 4, 1, 2, 3))
+    w_seg2 = np.array(w_seg2s)[:, None]                         # 1 x 1 x 192 x 192 x 208
+    warped = np.array(warps)[:, None]                           # 1 x 1 x 192 x 192 x 208
+    flow   = np.transpose(np.array(flows), (0, 4, 1, 2, 3))     # 1 x 3 x 192 x 192 x 208
     
     return {
         "warped": warped,
