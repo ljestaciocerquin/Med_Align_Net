@@ -33,7 +33,7 @@ parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specif
 parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
 parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Specifies the task to perform: train|val|test')
-parser.add_argument('-v', '--val_subset',   type=str, default=None)
+
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
 parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the results as a pkl file')
 parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
@@ -41,6 +41,7 @@ parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lowe
 parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
 parser.add_argument('-ue','--use_elastix',   action='store_true', help='if use elastix to register')
+parser.add_argument('-en', '--exp_name',    type=str, default='None', help='Name of the file that contains the results. Use it for ants and elastix.')
 parser.add_argument('--reverse',              action='store_true', help='if reverse')
 parser.add_argument('--debug',              action='store_true', help='if debug')
 args = parser.parse_args()
@@ -75,12 +76,15 @@ def main(args):
         image_size = cfg.get('image_size', [192, 192, 208])
         image_type = cfg.get('image_type', None)
         segmentation_class_value=cfg.get('segmentation_class_value', {'unknown':1})
+        
     # build dataset
     val_dataset = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode)
     val_loader  = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=min(8, args.batch_size), shuffle=False)
+    
     # build framework
     cfg_training.hyper_vp = hasattr(cfg_training, "hyper_vp") and cfg_training.hyper_vp
     model = RecursiveCascadeNetwork(n_cascades=cfg_training.n_cascades, im_size=image_size, base_network=cfg_training.base_network, in_channels=2+bool(cfg_training.masked), hyper_net=cfg_training.hyper_vp).cuda()
+    
     # add checkpoint loading
     from tools.utils import load_model, load_model_from_dir
     if os.path.isdir(args.checkpoint):
@@ -92,15 +96,15 @@ def main(args):
     # parent of model path
     import re
     # "([^\/]*_\d{6}_[^\/]*)"gm
-    exp_name     = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1)
+    exp_name     = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
     print('Experiment Name: ', exp_name)
-    output_fname = './eval/evaluations/{}_{}.txt'.format(args.val_subset or args.task_mode, exp_name)
+    output_fname = './eval/evaluations/{}_{}.txt'.format(args.task_mode, exp_name)
     print('output_fname', output_fname)
     output_fname = os.path.abspath(output_fname)
     print('will save to', output_fname)
     if not os.path.exists(output_fname):
         os.makedirs(os.path.dirname(output_fname), exist_ok=True)
-
+    import pdb; pdb.set_trace()
     # stage 1 model setup
     if cfg_training.masked in ['soft', 'hard']:
         # suppose the training dataset has the same data type of eval dataset
