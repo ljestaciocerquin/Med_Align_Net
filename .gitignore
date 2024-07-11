@@ -6,3 +6,4 @@ logs/
 eval/__pycache__/
 eval/eval/evaluations/
 eval/eval/eval_pkls/
+eval/elastix/
