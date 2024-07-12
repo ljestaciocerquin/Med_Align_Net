@@ -1,4 +1,4 @@
-# Med_Align_Net
+<h1 align="center">Med_Align_Net</h1>
 
 ## Introduction
 
