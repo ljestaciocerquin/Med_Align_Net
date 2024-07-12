@@ -4,6 +4,4 @@ wandb/
 notebooks/test_parameters.ipynb
 logs/
 eval/__pycache__/
-eval/eval/evaluations/
-eval/eval/eval_pkls/
-eval/elastix/
+eval/results/
