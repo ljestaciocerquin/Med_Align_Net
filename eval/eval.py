@@ -28,7 +28,7 @@ from tools.visualization import *
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
+parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/TSM/train/Jul10-164631_lutrain_TSMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
 parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
@@ -109,7 +109,7 @@ def main(args):
         folder_to_save_nii = args.nii_dir + exp_name + '/'
         if not os.path.exists(folder_to_save_nii):
             os.makedirs(os.path.dirname(folder_to_save_nii), exist_ok=True)
-        print('.nii.gz images will be saved in: ', output_fname)
+        print('predictions will be saved in: ', folder_to_save_nii)
     #import pdb; pdb.set_trace()
     # stage 1 model setup
     if cfg_training.masked in ['soft', 'hard']:
@@ -159,7 +159,10 @@ def main(args):
             warped                    = [torch.from_numpy(warped).float().cuda()]
             agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
         elif args.use_elastix:
-            pred                      = elastix_pred(fixed, moving, seg2)
+            
+            path_to_save_params       = './results/{}/pair_{}/'.format(args.exp_name, str(iteration))
+            #import pdb; pdb.set_trace()
+            pred                      = elastix_pred(fixed, moving, seg2, path_to_save_params)
             w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
             w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
             warped                    = [torch.from_numpy(warped).float().cuda()]
