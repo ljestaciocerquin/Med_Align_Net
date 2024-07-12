@@ -207,7 +207,6 @@ def main(args):
             out['warped'] = warped[-1].detach().cpu()
             out['flow']   = agg_flows[-1].detach().cpu()
             out['wseg2']  = w_seg2.detach().cpu()
-            #path_to_save = '/data/groups/beets-tan/l.estacio/Med_Align_Net/elastix/' + str(img_id) + '_'
             path_to_save = folder_to_save_nii + str(iteration) + '_'
             #import pdb; pdb.set_trace()
             save_outputs_as_nii_format(out, path_to_save)
