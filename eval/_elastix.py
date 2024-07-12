@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import SimpleITK as sitk 
 
@@ -6,6 +7,9 @@ def elastix_pred(fixed, moving, seg2, elastix_output_dir='./elastix/'):
     warps   = []
     w_seg2s = []
     flows   = []
+
+    if not os.path.exists(elastix_output_dir):
+        os.makedirs(os.path.dirname(elastix_output_dir), exist_ok=True)
 
     for i in range(fixed.shape[0]):
         # Convert PyTorch tensors to SimpleITK images
