@@ -68,7 +68,6 @@ python eval/eval.py -d datasets/LungCT_dataset.json -c path_to_checkpoint_dir -u
 
 We would like to thank the following repositories for their contributions and inspiration:
 
-- https://github.com/dddraxxx/Medical-Reg-with-Volume-Preserving/blob/raw/README.md
 - https://github.com/microsoft/Recursive-Cascaded-Networks?tab=readme-ov-file
 - https://github.com/ivan-jgr/recursive-cascaded-networks
 - https://github.com/junyuchen245/TransMorph_Transformer_for_Medical_Image_Registration/tree/main/TransMorph
