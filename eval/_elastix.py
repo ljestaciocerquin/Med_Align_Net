@@ -41,7 +41,14 @@ def elastix_pred(fixed, moving, seg2, elastix_output_dir='./elastix/'):
         im_seg2 = sitk.GetImageFromArray(seg2.cpu().numpy()[i,0])
         transformParameterMap = elastixImageFilter.GetTransformParameterMap()
         transformixImageFilter = sitk.TransformixImageFilter()
+        #transformixImageFilter.SetTransformParameterMap(transformParameterMap)
+        
+        # Modify the transform parameter map for nearest neighbor interpolation
+        for paramMap in transformParameterMap:
+            paramMap["FinalBSplineInterpolationOrder"] = ["0"]
         transformixImageFilter.SetTransformParameterMap(transformParameterMap)
+        
+        
         transformixImageFilter.SetMovingImage(im_seg2)
         transformixImageFilter.SetOutputDirectory(elastix_output_dir)
         transformixImageFilter.Execute()
