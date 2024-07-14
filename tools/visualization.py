@@ -222,9 +222,9 @@ def get_jacobian_det(flow):
     return jacob_det
 
               
-def save_heatmap_flow(flow, path_to_save, name=None):
+def save_heatmap_flow(flow, path_to_save):
     import os
-    output_dir = path_to_save +'heatmap/' if not name else path_to_save + 'heatmap_jdet/'
+    output_dir = path_to_save +'heatmap/'
     os.makedirs(output_dir, exist_ok=True) 
     flow = (flow - np.min(flow)) / (np.max(flow) - np.min(flow))
     
@@ -236,7 +236,44 @@ def save_heatmap_flow(flow, path_to_save, name=None):
         plt.axis('off')
         plt.savefig(os.path.join(output_dir, f'slice_{z:03d}.png'))
         plt.close()
+
+
+def plot_deformation_field_with_grid(deformation_field, jacobian_determinant, path_to_save, cmap='plasma'):
+    import os
+    output_dir = path_to_save +'heatmap/' 
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Normalize the determinant for visualization
+    determinant_normalized = (jacobian_determinant - np.min(jacobian_determinant)) / (np.max(jacobian_determinant) - np.min(jacobian_determinant))
     
+    # Normalize the deformation field for visualization
+    deformation_magnitude = np.sqrt(np.sum(deformation_field**2, axis=0))
+    deformation_normalized = deformation_field / (deformation_magnitude.max() + 1e-8)
+    
+    for slice_index in range(deformation_field.shape[3]):
+        # Rotate the slice by 180 degrees
+        determinant_slice = np.rot90(determinant_normalized[:, :, slice_index], 2)
+        
+        # Plot the heatmap of the determinant
+        plt.figure(figsize=(10, 10))
+        plt.imshow(determinant_slice, cmap=cmap)
+        plt.colorbar(label='Jacobian Determinant')
+        
+        # Overlay the deformation field as a grid
+        step = 10  # Define the step size for the grid
+        for i in range(0, deformation_field.shape[1], step):
+            for j in range(0, deformation_field.shape[2], step):
+                plt.arrow(j, i,
+                          deformation_normalized[0, i, j, slice_index] * 5,  # Scale for better visibility
+                          deformation_normalized[1, i, j, slice_index] * 5,
+                          head_width=1, head_length=1, color='black', alpha=0.5)
+        
+        plt.title(f'Jacobian Determinant and Deformation Field at Slice {slice_index}')
+        plt.axis('off')
+        plt.savefig(os.path.join(output_dir, f'slice_{slice_index:03d}_with_grid.png'))
+        plt.close()
+
+   
 
 def save_outputs_as_nii_format(out, path_to_save='./output/'):
     itk_img1 = sitk.ReadImage(out['img1_p'])
@@ -252,7 +289,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     save_heatmap_flow(flow, path_to_save)
     #import pdb; pdb.set_trace()
     jdet  = get_jacobian_det(flow3)
-    save_heatmap_flow(flow, path_to_save, 'jdet')
+    plot_deformation_field_with_grid(flow3, jdet, path_to_save)
     import pdb; pdb.set_trace()
     
     
