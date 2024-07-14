@@ -222,15 +222,15 @@ def get_jacobian_det(flow):
     return jacob_det
 
               
-def save_heatmap_flow(flow, path_to_save):
+def save_heatmap_flow(flow, path_to_save, name=None):
     import os
-    output_dir = path_to_save +'heatmap/' 
+    output_dir = path_to_save +'heatmap/' if not name else path_to_save + 'heatmap_jdet/'
     os.makedirs(output_dir, exist_ok=True) 
     flow = (flow - np.min(flow)) / (np.max(flow) - np.min(flow))
     
     for z in range(flow.shape[2]):
         plt.figure()
-        plt.imshow(flow[:, :, z], cmap='Pastel1')
+        plt.imshow(np.rot90(flow[:, :, z], 2), cmap='plasma')
         plt.colorbar(label='Deformation Magnitude')
         plt.title(f'Deformation Magnitude at Slice {z}')
         plt.axis('off')
@@ -248,11 +248,12 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_img = np.squeeze(convert_tensor_to_numpy(out['warped']), axis=(0,1)) 
     w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
-    import pdb; pdb.set_trace()
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
     save_heatmap_flow(flow, path_to_save)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     jdet  = get_jacobian_det(flow3)
+    save_heatmap_flow(flow, path_to_save, 'jdet')
+    import pdb; pdb.set_trace()
     
     
     img1  = convert_nda_to_itk(img1, itk_img1)
