@@ -185,6 +185,45 @@ def draw_seg_on_vol(data, lb, if_norm=True, alpha=0.3, colors=["green", "red", "
                         ))
     return torch.stack(res)/255
 
+def compute_jacobian_determinant(flow, i, j, k):
+    du_dx = (flow[0, i+1, j, k] - flow[0, i-1, j, k]) / 2
+    du_dy = (flow[0, i, j+1, k] - flow[0, i, j-1, k]) / 2
+    du_dz = (flow[0, i, j, k+1] - flow[0, i, j, k-1]) / 2
+
+    dv_dx = (flow[1, i+1, j, k] - flow[1, i-1, j, k]) / 2
+    dv_dy = (flow[1, i, j+1, k] - flow[1, i, j-1, k]) / 2
+    dv_dz = (flow[1, i, j, k+1] - flow[1, i, j, k-1]) / 2
+
+    dw_dx = (flow[2, i+1, j, k] - flow[2, i-1, j, k]) / 2
+    dw_dy = (flow[2, i, j+1, k] - flow[2, i, j-1, k]) / 2
+    dw_dz = (flow[2, i, j, k+1] - flow[2, i, j, k-1]) / 2
+
+    jacobian_matrix = np.array([
+        [du_dx, du_dy, du_dz],
+        [dv_dx, dv_dy, dv_dz],
+        [dw_dx, dw_dy, dw_dz]
+    ])
+    
+    return np.linalg.det(jacobian_matrix)
+    
+
+def get_jacobian_det(flow):
+    '''
+    flow: 3 x 192 x 192 x 208
+    '''
+    shape = flow.shape
+    import pdb; pdb.set_trace
+    jacob_det = np.zeros(shape[1:])
+    
+    for i in range(1, shape[1] - 1):
+        for j in range(1, shape[2] - 1):
+            for k in range(1, shape[3] - 1):
+                jacob_det[i, j, k] = compute_jacobian_determinant(flow, i, j, k)
+    return jacob_det
+                
+def save_heatmap_flow(flow, path_to_save):
+    path_to_save += 'heatmap/'  
+    
 
 def save_outputs_as_nii_format(out, path_to_save='./output/'):
     itk_img1 = sitk.ReadImage(out['img1_p'])
@@ -195,8 +234,12 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     seg2  = np.squeeze(convert_tensor_to_numpy(out['seg2']), axis=(0,1))  
     w_img = np.squeeze(convert_tensor_to_numpy(out['warped']), axis=(0,1)) 
     w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
-    flow  = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  
-    flow  = np.linalg.norm(flow, axis=0)
+    flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  
+    import pdb; pdb.set_trace()
+    flow  = np.linalg.norm(flow3, axis=0)
+    save_heatmap_flow(flow, path_to_save)
+    import pdb; pdb.set_trace()
+    jdet  = get_jacobian_det(flow3)
     
     
     img1  = convert_nda_to_itk(img1, itk_img1)
@@ -205,7 +248,9 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     seg2  = convert_nda_to_itk(seg2, itk_img2)  
     w_img = convert_nda_to_itk(w_img, itk_img1) 
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
-    flow  = convert_nda_to_itk(flow, itk_img1) 
+    flow  = convert_nda_to_itk(flow, itk_img1)
+    jdet  = convert_nda_to_itk(jdet, itk_img1) 
+    import pdb; pdb.set_trace()
       
     
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
@@ -215,3 +260,4 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     sitk.WriteImage(w_img, path_to_save + 'w_img.nii.gz')
     sitk.WriteImage(w_seg, path_to_save + 'w_seg.nii.gz')
     sitk.WriteImage(flow, path_to_save + 'flow.nii.gz')
+    sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
