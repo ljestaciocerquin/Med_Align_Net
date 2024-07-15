@@ -297,10 +297,85 @@ def plot_flow_with_arrows(image, flow, path_to_save):
         
         plt.figure(figsize=(10, 10))
         plt.imshow(image_slice, cmap='gray')
-        plt.colorbar(label='Jacobian Determinant')
+        plt.colorbar(label='Deformation Field')
         plt.quiver(X, Y, flow_slice[1, :, :], flow_slice[0, :, :], color='r', angles='xy', scale_units='xy', scale=1)
-        plt.title(f'Deformation Field with Arrows (Slice {slice})')
-        plt.savefig(os.path.join(output_dir, f'deformation_field_arrows_slice_{slice}.png'))
+        plt.title(f'Deformation Field at (Slice {slice})')
+        plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
+        plt.close()
+
+
+def plot_flow_with_grid(image, flow, path_to_save, grid_spacing=10):
+    """
+    Save the deformation field with a grid overlaid on each fixed image slice.
+
+    Parameters:
+    - fixed_image: 3D numpy array representing the fixed image.
+    - deformation_field: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
+    - path_to_save: Directory to save the output images.
+    - grid_spacing: Spacing between grid lines.
+    """
+    import os
+    output_dir = path_to_save +'flow_grid/' 
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for slice in range(image.shape[2]):
+        image_slice = image[:, :, slice]
+        flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
+        
+        h, w = image_slice.shape
+        Y, X = np.meshgrid(np.arange(0, h, grid_spacing), np.arange(0, w, grid_spacing), indexing='ij')
+        grid_points = np.stack([Y, X], axis=-1)
+        
+        deformed_grid_points = grid_points + flow_slice[::grid_spacing, ::grid_spacing]
+        
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image_slice, cmap='gray')
+        plt.colorbar(label='Deformation Field')
+        
+        for i in range(deformed_grid_points.shape[0]):
+            plt.plot(deformed_grid_points[i, :, 1], deformed_grid_points[i, :, 0], 'r-')
+        for j in range(deformed_grid_points.shape[1]):
+            plt.plot(deformed_grid_points[:, j, 1], deformed_grid_points[:, j, 0], 'r-')
+        
+        plt.quiver(X, Y, flow_slice[1, :, :], flow_slice[0, :, :], color='r', angles='xy', scale_units='xy', scale=1)
+        plt.title(f'Deformation Field at (Slice {slice})')
+        plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
+        plt.close()
+
+
+def plot_jac_det(image, flow, path_to_save, grid_spacing=10):
+    """
+    Save the Jacobian determinant as a scalar field overlaid on each fixed image slice.
+
+    Parameters:
+    - fixed_image: 3D numpy array representing the fixed image.
+    - deformation_field: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
+    - path_to_save: Directory to save the output images.
+    """
+    import os
+    output_dir = path_to_save +'jac_det/' 
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for slice in range(image.shape[2]):
+        image_slice = image[:, :, slice]
+        flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
+        
+        h, w   = image_slice.shape
+        dy, dx = flow_slice[0, :, :], flow_slice[1, :, :]
+        
+        # Calculate partial derivatives
+        dy_y, dy_x = np.gradient(dy)
+        dx_y, dx_x = np.gradient(dx)
+        
+        # Calculate Jacobian determinant
+        jacobian_determinant = (1 + dx_x) * (1 + dy_y) - dx_y * dy_x
+        
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image_slice, cmap='gray')
+        plt.imshow(jacobian_determinant, cmap='hot', alpha=0.6)
+        plt.colorbar(label='Jacobian Determinant')
+        plt.title(f'Jacobian Determinant (Slice {slice})')
+        plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
         plt.close()
 
 
@@ -318,8 +393,8 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
     save_heatmap_flow(flow, path_to_save)
     #import pdb; pdb.set_trace()
-    jdet  = get_jacobian_det(flow3)
-    plot_deformation_field_with_grid(flow3, jdet, path_to_save)
+    ##jdet  = get_jacobian_det(flow3)
+    ##plot_deformation_field_with_grid(flow3, jdet, path_to_save)
     import pdb; pdb.set_trace()
     
     
