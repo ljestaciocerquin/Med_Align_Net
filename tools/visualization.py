@@ -248,7 +248,7 @@ def plot_deformation_field_with_grid(deformation_field, jacobian_determinant, pa
     
     # Normalize the deformation field for visualization
     deformation_magnitude = np.sqrt(np.sum(deformation_field**2, axis=0))
-    deformation_normalized = deformation_field / (deformation_magnitude.max() + 1e-8)
+    #deformation_normalized = deformation_field / (deformation_magnitude.max() + 1e-8)
     
     for slice_index in range(deformation_field.shape[3]):
         # Rotate the slice by 180 degrees
@@ -263,17 +263,47 @@ def plot_deformation_field_with_grid(deformation_field, jacobian_determinant, pa
         step = 10  # Define the step size for the grid
         for i in range(0, deformation_field.shape[1], step):
             for j in range(0, deformation_field.shape[2], step):
-                plt.arrow(j, i,
-                          deformation_normalized[0, i, j, slice_index] * 5,  # Scale for better visibility
-                          deformation_normalized[1, i, j, slice_index] * 5,
-                          head_width=1, head_length=1, color='black', alpha=0.5)
+                # Normalize the deformation vectors for each slice
+                dx = deformation_field[0, i, j, slice_index] / (deformation_magnitude[i, j, slice_index] + 1e-8)
+                dy = deformation_field[1, i, j, slice_index] / (deformation_magnitude[i, j, slice_index] + 1e-8)
+                plt.quiver(j, i, dx, dy, color='black', alpha=0.5)
         
         plt.title(f'Jacobian Determinant and Deformation Field at Slice {slice_index}')
         plt.axis('off')
         plt.savefig(os.path.join(output_dir, f'slice_{slice_index:03d}_with_grid.png'))
         plt.close()
 
-   
+
+def plot_flow_with_arrows(image, flow, path_to_save):
+    """
+    Save the deformation field with arrows overlaid on each fixed image slice.
+
+    Parameters:
+    - image: 3D numpy array representing the fixed image.
+    - flow: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
+                         The first dimension contains the displacement vectors (dy, dx, dz).
+    - path_to_save: Directory to save the output images.
+    """
+    import os
+    output_dir = path_to_save +'flow_arrows/' 
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for slice in range(image.shape[2]):
+        image_slice = image[:, :, slice]
+        flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
+        
+        h, w = image_slice.shape
+        Y, X = np.meshgrid(np.arange(h), np.arange(w), indexing='ij')
+        
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image_slice, cmap='gray')
+        plt.colorbar(label='Jacobian Determinant')
+        plt.quiver(X, Y, flow_slice[1, :, :], flow_slice[0, :, :], color='r', angles='xy', scale_units='xy', scale=1)
+        plt.title(f'Deformation Field with Arrows (Slice {slice})')
+        plt.savefig(os.path.join(output_dir, f'deformation_field_arrows_slice_{slice}.png'))
+        plt.close()
+
+
 
 def save_outputs_as_nii_format(out, path_to_save='./output/'):
     itk_img1 = sitk.ReadImage(out['img1_p'])
