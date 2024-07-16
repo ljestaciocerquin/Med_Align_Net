@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from PIL import Image
 import numpy as np
 import SimpleITK as sitk
-
+import pandas as pd
 
 def convert_tensor_to_numpy(tensor):
     if isinstance(tensor, torch.Tensor):
@@ -100,7 +100,25 @@ def convert_itk_to_nda(itk_image: sitk.Image):
     """
     return np.moveaxis(sitk.GetArrayFromImage(itk_image), 0, -1)
 
-def apply_deformation_to_keypoints(moving_keypoints, deformation_field):
+def normalize_points(points, original_spacing, target_spacing):
+    """
+    Normalize points from original voxel spacing to target voxel spacing.
+    
+    Args:
+        points (torch.Tensor): Tensor of points of shape (N, 3).
+        original_spacing (torch.Tensor or list or tuple): Original voxel spacing.
+        target_spacing (torch.Tensor or list or tuple): Target voxel spacing.
+    
+    Returns:
+        torch.Tensor: Normalized points of shape (N, 3).
+    """
+    original_spacing = torch.tensor(original_spacing, dtype=points.dtype, device=points.device)
+    target_spacing   = torch.tensor(target_spacing, dtype=points.dtype, device=points.device)
+    scale_factors    = original_spacing / target_spacing
+    return points * scale_factors
+
+
+def apply_deformation_to_keypoints(moving_keypoints, deformation_field, fixed_keypoints):
     """
     Apply the deformation field to the moving keypoints.
     
@@ -112,10 +130,15 @@ def apply_deformation_to_keypoints(moving_keypoints, deformation_field):
         torch.Tensor: Transformed moving keypoints of shape (B, N, 3).
     """
     batch_size = moving_keypoints.shape[0]
+    mov_kps = normalize_points(torch.squeeze(moving_keypoints, 0), [1, 1, 1], [1, 1, 1])
+    fix_kps = normalize_points(torch.squeeze(fixed_keypoints, 0), [1, 1, 1], [1, 1, 1])
+    mov_kps = mov_kps[None, :]
+    fix_kps = fix_kps[None, :]
     transformed_keypoints = []
 
     for b in range(batch_size):
-        batch_keypoints = moving_keypoints[b]
+        batch_keypoints = mov_kps[b]
+        
         batch_deformation_field = deformation_field[b]
         transformed_batch_keypoints = []
         for keypoint in batch_keypoints:
@@ -127,4 +150,20 @@ def apply_deformation_to_keypoints(moving_keypoints, deformation_field):
         
         transformed_keypoints.append(transformed_batch_keypoints)
     
-    return torch.tensor(transformed_keypoints)
+    transformed_keypoints = torch.tensor(transformed_keypoints)
+    print('Hellooooooooooo: ', transformed_keypoints.shape)
+    data = np.hstack((convert_tensor_to_numpy(torch.squeeze(fixed_keypoints, 0).cpu()),
+                      convert_tensor_to_numpy(torch.squeeze(moving_keypoints, 0).cpu()), 
+                      convert_tensor_to_numpy(torch.squeeze(fix_kps, 0).cpu()),
+                      convert_tensor_to_numpy(torch.squeeze(mov_kps, 0).cpu()),
+                      convert_tensor_to_numpy(torch.squeeze(transformed_keypoints, 0).cpu())))
+    
+    columns = ['F_x_1.75', 'F_y_1.25', 'F_z_1.75', 
+               'M_x_1.75', 'M_y_1.25', 'M_z_1.75', 
+               'F_x_1', 'F_y_1', 'F_z_1', 
+               'M_x_1', 'M_y_1', 'M_z_1', 
+               'transformed_x', 'transformed_y', 'transformed_z']
+    df = pd.DataFrame(data, columns=columns)
+    df.to_csv('./output_csv.csv', index=False)
+    
+    return transformed_keypoints, fix_kps
