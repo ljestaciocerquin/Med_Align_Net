@@ -114,8 +114,8 @@ class RawData():
         voxel2        = torch.from_numpy(self.scan_loader(self.data[idx]['mov']['image'])).type(self.inp_dtype)
         segmentation1 = torch.from_numpy(self.label_loader(self.data[idx]['fix']['mask'])).type(self.inp_dtype)
         segmentation2 = torch.from_numpy(self.label_loader(self.data[idx]['mov']['mask'])).type(self.inp_dtype)
-        kps1          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints']))
-        kps2          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints']))
+        kps1          = torch.from_numpy(self.read_keypoints(self.data[idx]['fix']['keypoints'])).type(self.inp_dtype)
+        kps2          = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['keypoints'])).type(self.inp_dtype)
         
         ret['img1_path']     = self.data[idx]['fix']['image']
         ret['img2_path']     = self.data[idx]['mov']['image']
