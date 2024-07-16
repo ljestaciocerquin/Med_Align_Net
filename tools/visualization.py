@@ -364,12 +364,12 @@ def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step
         rotated_dy = -dy
 
         for j in range(len(y)):
-            ax.plot(rotated_xv[j, :] + rotated_dx[j, :], rotated_yv[j, :] + rotated_dy[j, :], color='purple', linewidth=0.5)
+            ax.plot(rotated_xv[j, :] + rotated_dx[j, :], rotated_yv[j, :] + rotated_dy[j, :], color='deeppink', linewidth=0.5)
         for k in range(len(x)):
-            ax.plot(rotated_xv[:, k] + rotated_dx[:, k], rotated_yv[:, k] + rotated_dy[:, k], color='purple', linewidth=0.5)
+            ax.plot(rotated_xv[:, k] + rotated_dx[:, k], rotated_yv[:, k] + rotated_dy[:, k], color='deeppink', linewidth=0.5)
 
         # Add quiver plot for the deformation field
-        ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='yellow', alpha=0.7)
+        ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='greenyellow', alpha=0.7)
 
         plt.axis('off')
 
