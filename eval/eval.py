@@ -25,10 +25,11 @@ from data_util.dataset import Data
 from tools.utils import *
 from run_utils import build_precompute, read_cfg
 from tools.visualization import *
-
+from tools.utils import convert_tensor_to_numpy, apply_deformation_to_keypoints
+from metrics.losses import compute_TRE_mean_std
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/TSM/train/Jul10-164631_lutrain_TSMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
+parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
 parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
@@ -40,9 +41,10 @@ parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the 
 parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
 parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dice for each region')
 parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
+parser.add_argument('-tre', '--tre_dist',   default=True, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate TRE dist using keypoints')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
 parser.add_argument('-ue','--use_elastix',   action='store_true', help='if use elastix to register')
-parser.add_argument('-en', '--exp_name',    type=str, default='None', help='Name of the file that contains the results. Use it for ants and elastix.')
+parser.add_argument('-en', '--exp_name',    type=str, default='', help='Name of the file that contains the results. Use it for ants and elastix.')
 parser.add_argument('--reverse',              action='store_true', help='if reverse')
 parser.add_argument('--debug',              action='store_true', help='if debug')
 args = parser.parse_args()
@@ -97,7 +99,8 @@ def main(args):
     # parent of model path
     import re
     # "([^\/]*_\d{6}_[^\/]*)"gm
-    exp_name     = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
+    exp_name = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
+    exp_name += 'temp' # In case an additional name is given 
     print('Experiment Name: ', exp_name)
     output_fname = './results/{}_{}.txt'.format(args.task_mode, exp_name)
     print('output_fname: ', output_fname)
@@ -152,8 +155,10 @@ def main(args):
 
         fixed, moving = data['voxel1'], data['voxel2']
         id1, id2      = data['img1_path'], data['img2_path']
+        kp1, kp2      = data['kps1'], data['kps2']
+        
         if args.use_ants:
-            pred                      = ants_pred(fixed, moving, seg2)
+            pred                      = ants_pred(fixed, moving, seg2, kp2)
             w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
             w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
             warped                    = [torch.from_numpy(warped).float().cuda()]
@@ -221,6 +226,7 @@ def main(args):
             # if v > 0 and v not in data['segmentation1'].unique():
             #     # print('no {} in segmentation1'.format(k))
             #     continue
+            
             if args.region_dice and v<=2:
                 sseg2   = (data['segmentation2'].cuda() > v-0.5) & (data['segmentation2'].cuda() <= 2.5)
                 sseg1   = (data['segmentation1'].cuda() > v-0.5) & (data['segmentation1'].cuda() <= 2.5)
@@ -331,10 +337,27 @@ def main(args):
             # for k in range(len(to_ratio)):
             #     print('to_ratio for {} to {}: {:.4f}'.format(id1[k], id2[k], to_ratio[k]**2))
 
+        if args.tre_dist:
+            flow = agg_flows[-1]
+            import pdb; pdb.set_trace()
+            trans_kp2 = apply_deformation_to_keypoints(kp2, flow)
+            tre_mean, tre_std  = compute_TRE_mean_std(trans_kp2, kp1, [1.75, 1.25, 1.75])#moving_img.GetSpacing()))
+            tre_mean1, tre_std1  = compute_TRE_mean_std(kp1, kp1, [1.75, 1.25, 1.75])
+            tre_mean2, tre_std2  = compute_TRE_mean_std(kp2, kp1, [1.75, 1.25, 1.75])
+            if 'tre_mean' not in metric_keys:
+                metric_keys.append('tre_mean')
+                results['tre_mean'] = []
+            if 'tre_std' not in metric_keys:
+                metric_keys.append('tre_std')
+                results['tre_std'] = []
+            results['tre_mean'].extend(tre_mean.item())
+            results['tre_std'].extend(tre_std.item())
+        
         if not args.use_ants and not args.use_elastix:
             del fixed, moving, warped, flows, agg_flows, affine_params
         # get mean of dice class
         results['dices'].extend(np.mean(dices, axis=0))
+        
 
     # save result
     with open(output_fname, 'w') as fo:
