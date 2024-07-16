@@ -100,3 +100,24 @@ def convert_itk_to_nda(itk_image: sitk.Image):
     """
     return np.moveaxis(sitk.GetArrayFromImage(itk_image), 0, -1)
 
+def apply_deformation_to_keypoints(moving_keypoints, deformation_field):
+    """
+    Apply the deformation field to the moving keypoints.
+    
+    Args:
+        moving_keypoints (numpy.ndarray): Array of moving keypoints of shape (N, 3).
+        deformation_field (numpy.ndarray): Deformation field of shape (3, W, H, D).
+    
+    Returns:
+        numpy.ndarray: Transformed moving keypoints of shape (N, 3).
+    """
+    moving_keypoints =np.squeeze(moving_keypoints, axis=0) # (1, 1422, 3) --> (1422, 3)
+    print('Hellllooooooo: ', moving_keypoints.shape)
+    transformed_keypoints = []
+    for keypoint in moving_keypoints:
+        x, y, z = keypoint
+        dx = deformation_field[:, 0, int(x), int(y), int(z)]
+        dy = deformation_field[:, 1, int(x), int(y), int(z)]
+        dz = deformation_field[:, 2, int(x), int(y), int(z)]
+        transformed_keypoints.append([x + dx, y + dy, z + dz])
+    return np.array(transformed_keypoints)
