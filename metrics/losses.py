@@ -314,6 +314,23 @@ def compute_TRE(points_fixed, points_moved, voxel_spacing):
     return np.mean(distances), np.std(distances) 
 
 
+def compute_TRE_mean_std(points_fixed, points_moved, voxel_spacing):
+    """Compute Target Registration Error (TRE) between two sets of points.
+
+    Args:
+        points_fixed (torch.Tensor): points in fixed space of shape (N, 3)
+        points_moved (torch.Tensor): points in moved space of shape (N, 3)
+        voxel_spacing (torch.Tensor or list or tuple): spacing of voxels in each dimension
+
+    Returns:
+        mean TRE: average TRE over all points
+        std TRE: standard deviation of TRE over all points
+    """
+    voxel_spacing = torch.tensor(voxel_spacing, dtype=points_fixed.dtype, device=points_fixed.device)
+    differences   = (points_moved - points_fixed) * voxel_spacing
+    distances     = torch.norm(differences, dim=1)
+    return torch.mean(distances), torch.std(distances)
+
 # if main
 if __name__ == '__main__':
     import numpy as np
