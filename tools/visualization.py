@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import SimpleITK as sitk
@@ -238,9 +239,9 @@ def save_heatmap_flow(flow, path_to_save):
         plt.close()
 
 
-def plot_deformation_field_with_grid(deformation_field, jacobian_determinant, path_to_save, cmap='plasma'):
+def plot_deformation_field_with_grid_and_jacobian(deformation_field, jacobian_determinant, path_to_save, cmap='plasma'):
     import os
-    output_dir = path_to_save +'heatmap/' 
+    output_dir = path_to_save +'heatmap_flow_jdet/' 
     os.makedirs(output_dir, exist_ok=True)
 
     # Normalize the determinant for visualization
@@ -274,76 +275,110 @@ def plot_deformation_field_with_grid(deformation_field, jacobian_determinant, pa
         plt.close()
 
 
-def plot_flow_with_arrows(image, flow, path_to_save):
-    """
-    Save the deformation field with arrows overlaid on each fixed image slice.
 
-    Parameters:
-    - image: 3D numpy array representing the fixed image.
-    - flow: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
-                         The first dimension contains the displacement vectors (dy, dx, dz).
-    - path_to_save: Directory to save the output images.
-    """
-    import os
-    output_dir = path_to_save +'flow_arrows/' 
-    os.makedirs(output_dir, exist_ok=True)
-    
-    for slice in range(image.shape[2]):
-        image_slice = image[:, :, slice]
-        flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
-        
-        h, w = image_slice.shape
-        Y, X = np.meshgrid(np.arange(h), np.arange(w), indexing='ij')
-        
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image_slice, cmap='gray')
-        plt.colorbar(label='Deformation Field')
-        plt.quiver(X, Y, flow_slice[1, :, :], flow_slice[0, :, :], color='r', angles='xy', scale_units='xy', scale=1)
-        plt.title(f'Deformation Field at (Slice {slice})')
-        plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
-        plt.close()
-
-
-def plot_flow_with_grid(image, flow, path_to_save, grid_spacing=10):
+import matplotlib.colors as mcolors
+def plot_flow_overlayed_with_image(image, flow, path_to_save):
     """
     Save the deformation field with a grid overlaid on each fixed image slice.
 
     Parameters:
-    - fixed_image: 3D numpy array representing the fixed image.
-    - deformation_field: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
+    - image: 3D numpy array representing the fixed image.
+    - flow: 4D numpy array with shape (3, 192, 192, 208), representing the deformation field.
     - path_to_save: Directory to save the output images.
-    - grid_spacing: Spacing between grid lines.
     """
-    import os
-    output_dir = path_to_save +'flow_grid/' 
+    output_dir = path_to_save + 'flow_image_overlaying/' 
     os.makedirs(output_dir, exist_ok=True)
     
-    for slice in range(image.shape[2]):
-        image_slice = image[:, :, slice]
-        flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
+    # Define colors for deformation field overlay
+    deformation_magnitude = np.linalg.norm(flow, axis=0)
+    norm = mcolors.Normalize(vmin=0, vmax=np.max(deformation_magnitude))
+    cmap = plt.cm.jet
+    
+    for i in range(image.shape[2]):
+        fig, ax = plt.subplots()
+        ax.imshow(image[:, :, i], cmap='gray')
         
-        h, w = image_slice.shape
-        Y, X = np.meshgrid(np.arange(0, h, grid_spacing), np.arange(0, w, grid_spacing), indexing='ij')
-        grid_points = np.stack([Y, X], axis=-1)
+        # Overlay deformation field
+        magnitude_slice = deformation_magnitude[:, :, i]
+        color_overlay = cmap(norm(magnitude_slice))
         
-        deformed_grid_points = grid_points + flow_slice[::grid_spacing, ::grid_spacing]
+        # Blend the original image and the color overlay
+        blended = 0.6 * image[:, :, i][:, :, None] + 0.4 * color_overlay[:, :, :3]
         
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image_slice, cmap='gray')
-        plt.colorbar(label='Deformation Field')
+        ax.imshow(blended, cmap='jet', alpha=0.5)
+        plt.axis('off')
         
-        for i in range(deformed_grid_points.shape[0]):
-            plt.plot(deformed_grid_points[i, :, 1], deformed_grid_points[i, :, 0], 'r-')
-        for j in range(deformed_grid_points.shape[1]):
-            plt.plot(deformed_grid_points[:, j, 1], deformed_grid_points[:, j, 0], 'r-')
-        
-        plt.quiver(X, Y, flow_slice[1, :, :], flow_slice[0, :, :], color='r', angles='xy', scale_units='xy', scale=1)
-        plt.title(f'Deformation Field at (Slice {slice})')
-        plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
-        plt.close()
+        output_path = os.path.join(output_dir, f'slice_{i:03d}.png')
+        plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
 
 
-def plot_jac_det(image, flow, path_to_save, grid_spacing=10):
+
+def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step=10, quiver_scale=1):
+    """
+    Overlays the deformation field on image slices and saves the output images.
+    
+    Args:
+        image_slices (numpy.ndarray): 3D array of image slices of shape (192, 192, 208).
+        deformation_field (numpy.ndarray): Deformation field of shape (3, 192, 192, 208).
+        output_dir (str): Directory to save the output images.
+        grid_step (int): Step size for the grid overlay.
+    """
+    output_dir = path_to_save + 'flow_grid/' 
+    os.makedirs(output_dir, exist_ok=True)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # Define colors for deformation field overlay
+    deformation_magnitude = np.linalg.norm(deformation_field, axis=0)
+    norm = mcolors.Normalize(vmin=0, vmax=np.max(deformation_magnitude))
+    cmap = plt.cm.jet
+
+    # Create a grid of points
+    y = np.arange(0, image_slices.shape[0], grid_step)  # height
+    x = np.arange(0, image_slices.shape[1], grid_step)  # width
+    xv, yv = np.meshgrid(x, y, indexing='xy')
+
+    for i in range(image_slices.shape[2]):
+        fig, ax = plt.subplots()
+
+        # Rotate the image slice by 180 degrees
+        rotated_image = np.rot90(image_slices[:, :, i], 2)
+        ax.imshow(rotated_image, cmap='gray')
+
+        # Overlay deformation field
+        magnitude_slice = deformation_magnitude[:, :, i]
+        rotated_magnitude_slice = np.rot90(magnitude_slice, 2)
+        color_overlay = cmap(norm(rotated_magnitude_slice))
+        
+        # Blend the original image and the color overlay
+        blended = np.clip(0.6 * np.repeat(rotated_image[:, :, None], 3, axis=2) + 0.4 * color_overlay[:, :, :3], 0, 1)
+        ax.imshow(blended, alpha=0.5)
+
+        # Deform the grid points and rotate by 180 degrees
+        dx = deformation_field[0, yv, xv, i]
+        dy = deformation_field[1, yv, xv, i]
+        rotated_xv = xv.max() - xv
+        rotated_yv = yv.max() - yv
+        rotated_dx = -dx
+        rotated_dy = -dy
+
+        for j in range(len(y)):
+            ax.plot(rotated_xv[j, :] + rotated_dx[j, :], rotated_yv[j, :] + rotated_dy[j, :], color='purple', linewidth=0.5)
+        for k in range(len(x)):
+            ax.plot(rotated_xv[:, k] + rotated_dx[:, k], rotated_yv[:, k] + rotated_dy[:, k], color='purple', linewidth=0.5)
+
+        # Add quiver plot for the deformation field
+        ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='yellow', alpha=0.7)
+
+        plt.axis('off')
+
+        output_path = os.path.join(output_dir, f'slice_{i:03d}.png')
+        plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+
+
+def plot_jac_det(image, flow, path_to_save):
     """
     Save the Jacobian determinant as a scalar field overlaid on each fixed image slice.
 
@@ -360,7 +395,6 @@ def plot_jac_det(image, flow, path_to_save, grid_spacing=10):
         image_slice = image[:, :, slice]
         flow_slice  = flow[:2, :, :, slice] # # Take only dy, dx for 2D slice
         
-        h, w   = image_slice.shape
         dy, dx = flow_slice[0, :, :], flow_slice[1, :, :]
         
         # Calculate partial derivatives
@@ -371,14 +405,19 @@ def plot_jac_det(image, flow, path_to_save, grid_spacing=10):
         jacobian_determinant = (1 + dx_x) * (1 + dy_y) - dx_y * dy_x
         
         plt.figure(figsize=(10, 10))
-        plt.imshow(image_slice, cmap='gray')
-        plt.imshow(jacobian_determinant, cmap='hot', alpha=0.6)
+        plt.imshow(np.rot90(image_slice, 2), cmap='gray')
+        plt.imshow(np.rot90(jacobian_determinant,2), cmap='plasma', alpha=0.6)
         plt.colorbar(label='Jacobian Determinant')
-        plt.title(f'Jacobian Determinant (Slice {slice})')
+        #plt.title(f'Jacobian Determinant (Slice {slice})')
         plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
         plt.close()
 
 
+def normalize_flow(deformation_field):
+    min_val = deformation_field.min()
+    max_val = deformation_field.max()
+    normalized_field = 2 * (deformation_field - min_val) / (max_val - min_val) - 1
+    return normalized_field
 
 def save_outputs_as_nii_format(out, path_to_save='./output/'):
     itk_img1 = sitk.ReadImage(out['img1_p'])
@@ -391,12 +430,14 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
-    save_heatmap_flow(flow, path_to_save)
+    #save_heatmap_flow(flow, path_to_save)
     #import pdb; pdb.set_trace()
     ##jdet  = get_jacobian_det(flow3)
-    ##plot_deformation_field_with_grid(flow3, jdet, path_to_save)
+    ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
+    norm_flow3 = normalize_flow(flow3)
+    plot_flow_with_grid(img1, flow3, path_to_save)
+    plot_jac_det(img1, norm_flow3, path_to_save)
     import pdb; pdb.set_trace()
-    
     
     img1  = convert_nda_to_itk(img1, itk_img1)
     img2  = convert_nda_to_itk(img2, itk_img2)   
@@ -405,7 +446,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_img = convert_nda_to_itk(w_img, itk_img1) 
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
     flow  = convert_nda_to_itk(flow, itk_img1)
-    jdet  = convert_nda_to_itk(jdet, itk_img1) 
+    #jdet  = convert_nda_to_itk(jdet, itk_img1) 
     import pdb; pdb.set_trace()
       
     
@@ -416,4 +457,4 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     sitk.WriteImage(w_img, path_to_save + 'w_img.nii.gz')
     sitk.WriteImage(w_seg, path_to_save + 'w_seg.nii.gz')
     sitk.WriteImage(flow, path_to_save + 'flow.nii.gz')
-    sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
+    #sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
