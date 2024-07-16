@@ -369,7 +369,7 @@ def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step
             ax.plot(rotated_xv[:, k] + rotated_dx[:, k], rotated_yv[:, k] + rotated_dy[:, k], color='deeppink', linewidth=0.5)
 
         # Add quiver plot for the deformation field
-        ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='greenyellow', alpha=0.7)
+        ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='yellow', alpha=0.7)
 
         plt.axis('off')
 
@@ -430,7 +430,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
-    #save_heatmap_flow(flow, path_to_save)
+    save_heatmap_flow(flow, path_to_save)
     #import pdb; pdb.set_trace()
     ##jdet  = get_jacobian_det(flow3)
     ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
