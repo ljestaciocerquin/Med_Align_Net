@@ -339,19 +339,20 @@ def main(args):
 
         if args.tre_dist:
             flow = agg_flows[-1]
-            import pdb; pdb.set_trace()
-            trans_kp2 = apply_deformation_to_keypoints(kp2, flow)
-            tre_mean, tre_std  = compute_TRE_mean_std(trans_kp2, kp1, [1.75, 1.25, 1.75])#moving_img.GetSpacing()))
-            tre_mean1, tre_std1  = compute_TRE_mean_std(kp1, kp1, [1.75, 1.25, 1.75])
-            tre_mean2, tre_std2  = compute_TRE_mean_std(kp2, kp1, [1.75, 1.25, 1.75])
+            #import pdb; pdb.set_trace()
+            trans_kp2, fix_kps = apply_deformation_to_keypoints(kp2, flow, kp1)
+            tre_mean, tre_std  = compute_TRE_mean_std(fix_kps, trans_kp2, [1, 1, 1])#moving_img.GetSpacing()))
+            tre_mean2, tre_std2  = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
+            print('tre_mean, tre_std: ', tre_mean, tre_std)
+            print('tre_mean2, tre_std2: ', tre_mean2, tre_std2)
             if 'tre_mean' not in metric_keys:
                 metric_keys.append('tre_mean')
                 results['tre_mean'] = []
             if 'tre_std' not in metric_keys:
                 metric_keys.append('tre_std')
                 results['tre_std'] = []
-            results['tre_mean'].extend(tre_mean.item())
-            results['tre_std'].extend(tre_std.item())
+            results['tre_mean'].extend(tre_mean)
+            results['tre_std'].extend(tre_std)
         
         if not args.use_ants and not args.use_elastix:
             del fixed, moving, warped, flows, agg_flows, affine_params
