@@ -177,6 +177,8 @@ def main(args):
                 fixed  = fixed.cuda()
                 moving = moving.cuda()
                 seg2 = seg2.cuda()
+                kp1  = kp1.cuda()
+                kp2  = kp2.cuda()
                 if cfg_training.masked  in ['soft' , 'hard']:
                     input_seg, compute_mask = model.pre_register(fixed, moving, seg2, training=False, cfg=cfg_training)
                     moving_                 = torch.cat([moving, input_seg.float().cuda()], dim=1)
@@ -342,8 +344,8 @@ def main(args):
             #import pdb; pdb.set_trace()
             tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing)#moving_img.GetSpacing()))
             #tre_mean2, tre_std2 = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
-            print('tre_mean_init, tre_std_init: ', tre_init[0], tre_init[1])
-            print('tre_mean_def, tre_std_def: ', tre_def[0], tre_def[1])
+            print('tre_mean_init, tre_std_init: ', tre_init)
+            print('tre_mean_def, tre_std_def: ', tre_def)
             import ipdb; ipdb.set_trace()
             if 'tre_mean' not in metric_keys:
                 metric_keys.append('tre_mean')
