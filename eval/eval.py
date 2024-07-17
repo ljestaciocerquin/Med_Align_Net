@@ -100,9 +100,9 @@ def main(args):
     import re
     # "([^\/]*_\d{6}_[^\/]*)"gm
     exp_name = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
-    exp_name += 'temp' # In case an additional name is given 
+    #exp_name += 'temp' # In case an additional name is given 
     print('Experiment Name: ', exp_name)
-    output_fname = './results/{}_{}.txt'.format(args.task_mode, exp_name)
+    output_fname = './eval/results/{}_{}.txt'.format(args.task_mode, exp_name)
     print('output_fname: ', output_fname)
     output_fname = os.path.abspath(output_fname)
     print('will save to: ', output_fname)
@@ -165,7 +165,7 @@ def main(args):
             agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
         elif args.use_elastix:
             
-            path_to_save_params       = './results/{}/pair_{}/'.format(args.exp_name, str(iteration))
+            path_to_save_params       = './eval/results/{}/pair_{}/'.format(args.exp_name, str(iteration))
             #import pdb; pdb.set_trace()
             pred                      = elastix_pred(fixed, moving, seg2, path_to_save_params)
             w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
@@ -341,8 +341,11 @@ def main(args):
 
         if args.tre_dist:
             flow = agg_flows[-1]
-            path_to_save_points = output_fname.replace('.txt', '_deformed_points.xlsx')
-            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing, path_to_save_points)
+            directory = output_fname.replace('.txt', '/')
+            if not os.path.exists(directory):
+                os.makedirs(os.path.dirname(directory), exist_ok=True)
+            filename  = directory + 'deformed_keypoints_' + str(iteration) + '.xlsx'
+            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing, filename)
             #import pdb; pdb.set_trace()
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
