@@ -341,9 +341,8 @@ def main(args):
 
         if args.tre_dist:
             flow = agg_flows[-1]
+            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing)
             #import pdb; pdb.set_trace()
-            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing)#moving_img.GetSpacing()))
-            #tre_mean2, tre_std2 = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
             #import ipdb; ipdb.set_trace()
@@ -353,8 +352,8 @@ def main(args):
             if 'tre_std' not in metric_keys:
                 metric_keys.append('tre_std')
                 results['tre_std'] = []
-            results['tre_mean'].extend(tre_init)
-            results['tre_std'].extend(tre_def)
+            results['tre_mean'].extend([tre_def[0].item()])
+            results['tre_std'].extend([tre_def[1].item()])
         
         if not args.use_ants and not args.use_elastix:
             del fixed, moving, warped, flows, agg_flows, affine_params
