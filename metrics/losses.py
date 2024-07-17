@@ -313,53 +313,13 @@ def compute_TRE(points_fixed, points_moved, voxel_spacing):
     distances = np.linalg.norm(differences, axis=1)
     return np.mean(distances), np.std(distances) 
 
-#from tools.utils import normalize_points
-
-
-
-def compute_TRE_mean_std(points_fixed, points_moved, voxel_spacing):
-    """Compute Target Registration Error (TRE) between two sets of points.
-
-    Args:
-        points_fixed (torch.Tensor): points in fixed space of shape (N, 3)
-        points_moved (torch.Tensor): points in moved space of shape (N, 3)
-        voxel_spacing (torch.Tensor or list or tuple): spacing of voxels in each dimension
-
-    Returns:
-        mean TRE: average TRE over all points
-        std TRE: standard deviation of TRE over all points
-    """
-    # Normalize points_moved to the spacing of points_moved
-    #points_fixed_normalized = normalize_points(points_fixed, spacing_fixed, spacing_moved)
-
-    # Compute TRE
-    voxel_spacing = torch.tensor(voxel_spacing, dtype=points_fixed.dtype, device=points_fixed.device)
-    print('Voxel spacing: ', voxel_spacing, )
-    print(type(points_moved), points_moved.shape)
-    print(type(points_fixed), points_fixed.shape)
-    print(type(voxel_spacing), voxel_spacing.shape)
-    print(points_moved)
-    print(points_fixed)
-    differences = (points_moved - points_fixed) * voxel_spacing
-    print('Diferences: ', differences.shape)
-    distances = torch.norm(differences, dim=1)
-
-    return [torch.mean(distances).item()], [torch.std(distances).item()]
 
 def resample_flow(flow, original_spacing, target_spacing):
     
-    print('Original spacing: ', original_spacing)
-    print('target spacing: ', target_spacing)
     # Compute the scaling factors for each dimension
     scaling_factors = [o / t for o, t in zip(original_spacing, target_spacing)]
-    
     # Compute the new shape of the flow based on scaling factors
     new_shape = [int(flow.shape[i+2] * scaling_factors[i]) for i in range(3)]
-    print('flow shape: ', flow.shape)
-    #flow = torch.squeeze(flow, dim=0)
-    print('flow shape: ', flow.shape)
-    print('New shape: ', new_shape)
-    # Resample the flow using trilinear interpolation
     flow_resampled = F.interpolate(flow, size=new_shape, mode='trilinear', align_corners=True)
     
     return flow_resampled
@@ -367,10 +327,10 @@ def resample_flow(flow, original_spacing, target_spacing):
 
 def compute_tre(kp1, kp2):
     # Compute the TRE between kp1 and kp2
-    tre      = torch.norm(kp1 - kp2, dim=-1)
+    tre      = torch.norm((kp1 - kp2), dim=-1)
     tre_mean = tre.mean()
     tre_std  = tre.std()
-    return (tre_mean, tre_std)
+    return [tre_mean, tre_std]
 
 
 def apply_deformation(kp, flow, spacing):
@@ -402,19 +362,15 @@ def apply_deformation(kp, flow, spacing):
 
 
 def apply_deformation_field(deformation_field, keypoints):
-    print('Deformation field size: ', deformation_field.shape)
-    print('keypoints size: ', keypoints.shape)
-    # Extract the single batch element (since batch size is 1)
     deformation_field = deformation_field[0]  # (3, 192, 192, 208)
     keypoints = keypoints[0]  # (1422, 3)
 
-    # Split the deformation field into x, y, z components
     deform_x = deformation_field[0]  # (192, 192, 208)
     deform_y = deformation_field[1]  # (192, 192, 208)
     deform_z = deformation_field[2]  # (192, 192, 208)
 
     # Normalize keypoints coordinates to be in the range [-1, 1]
-    D, H, W = deform_x.shape
+    W, H, D = deform_x.shape
     keypoints_normalized = keypoints.clone()
     keypoints_normalized[:, 0] = 2.0 * keypoints[:, 0] / (W - 1) - 1.0
     keypoints_normalized[:, 1] = 2.0 * keypoints[:, 1] / (H - 1) - 1.0
@@ -438,7 +394,7 @@ def apply_deformation_field(deformation_field, keypoints):
     deformed_keypoints[:, 1] += deform_y_interpolated
     deformed_keypoints[:, 2] += deform_z_interpolated
 
-    return deformed_keypoints
+    return deformed_keypoints.unsqueeze(0)
 
 
 def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
@@ -448,13 +404,17 @@ def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
     flow_spacing = torch.tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
     
     flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
-    initial_tre     = compute_tre(kp1, kp2)
+    initial_tre    = compute_tre(kp1 , kp2)
     
     # Apply resampled deformation field to kp2
     deformed_kp2 = apply_deformation_field(flow_resampled, kp2)#(kp1, flow_resampled, kp_spacing)
     deformed_tre = compute_tre(kp1, deformed_kp2)
+
+    print('Kp1', kp1.shape)
+    print('Kp2', kp2.shape)
+    print('deformed_kp2', deformed_kp2.shape)
     
-    return [initial_tre], [deformed_tre]
+    return initial_tre, deformed_tre
     
 
 # if main
