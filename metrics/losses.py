@@ -347,12 +347,18 @@ def compute_TRE_mean_std(points_fixed, points_moved, voxel_spacing):
     return [torch.mean(distances).item()], [torch.std(distances).item()]
 
 def resample_flow(flow, original_spacing, target_spacing):
+    
+    print('Original spacing: ', original_spacing)
+    print('target spacing: ', target_spacing)
     # Compute the scaling factors for each dimension
     scaling_factors = [o / t for o, t in zip(original_spacing, target_spacing)]
     
     # Compute the new shape of the flow based on scaling factors
     new_shape = [int(flow.shape[i+2] * scaling_factors[i]) for i in range(3)]
-    
+    print('flow shape: ', flow.shape)
+    #flow = torch.squeeze(flow, dim=0)
+    print('flow shape: ', flow.shape)
+    print('New shape: ', new_shape)
     # Resample the flow using trilinear interpolation
     flow_resampled = F.interpolate(flow, size=new_shape, mode='trilinear', align_corners=True)
     
@@ -367,14 +373,88 @@ def compute_tre(kp1, kp2):
     return (tre_mean, tre_std)
 
 
+def apply_deformation(kp, flow, spacing):
+    # Convert keypoints to voxel coordinates
+    voxel_coords = kp #/ torch.tensor(spacing, device=kp.device)
+    
+    # Normalize voxel coordinates to the range [-1, 1]
+    voxel_coords = (2.0 * voxel_coords / torch.tensor(flow.shape[2:], device=kp.device) - 1.0)
+    
+    # Reshape for grid_sample
+    print('voxel_coords: ', voxel_coords.shape)
+    print('voxel_coords.unsqueeze(0): ', voxel_coords.unsqueeze(0).shape)
+    print('voxel_coords.unsqueeze(0).unsqueeze(0): ', voxel_coords.unsqueeze(0).unsqueeze(0).shape)
+    voxel_coords = voxel_coords.unsqueeze(0).unsqueeze(0)
+    #voxel_coords = voxel_coords.permute(0, 2, 3, 4, 1)
+    print('final voxel_coords: ', voxel_coords.shape)
+    
+    print('voxel_coords: ', voxel_coords.shape)
+    print('flow.unsqueeze(0): ', flow.unsqueeze(0).shape)
+    
+    # Interpolate the flow at the keypoint voxel coordinates using trilinear interpolation
+    deformed_voxels = F.grid_sample(flow, voxel_coords, mode='bilinear', align_corners=True)
+    
+    # Convert deformed voxel coordinates back to world coordinates
+    deformed_voxels = deformed_voxels.squeeze().permute(1, 0)
+    deformed_kp = deformed_voxels #* torch.tensor(spacing, device=kp.device)
+    
+    return deformed_kp
+
+
+def apply_deformation_field(deformation_field, keypoints):
+    print('Deformation field size: ', deformation_field.shape)
+    print('keypoints size: ', keypoints.shape)
+    # Extract the single batch element (since batch size is 1)
+    deformation_field = deformation_field[0]  # (3, 192, 192, 208)
+    keypoints = keypoints[0]  # (1422, 3)
+
+    # Split the deformation field into x, y, z components
+    deform_x = deformation_field[0]  # (192, 192, 208)
+    deform_y = deformation_field[1]  # (192, 192, 208)
+    deform_z = deformation_field[2]  # (192, 192, 208)
+
+    # Normalize keypoints coordinates to be in the range [-1, 1]
+    D, H, W = deform_x.shape
+    keypoints_normalized = keypoints.clone()
+    keypoints_normalized[:, 0] = 2.0 * keypoints[:, 0] / (W - 1) - 1.0
+    keypoints_normalized[:, 1] = 2.0 * keypoints[:, 1] / (H - 1) - 1.0
+    keypoints_normalized[:, 2] = 2.0 * keypoints[:, 2] / (D - 1) - 1.0
+
+    # Reshape keypoints for grid_sample: (1, 1422, 1, 1, 3)
+    keypoints_normalized = keypoints_normalized.view(1, 1, 1, -1, 3)
+    
+    # Interpolate deformation vectors at keypoint locations
+    deform_x_interpolated = F.grid_sample(deform_x.unsqueeze(0).unsqueeze(0), keypoints_normalized, align_corners=True)
+    deform_y_interpolated = F.grid_sample(deform_y.unsqueeze(0).unsqueeze(0), keypoints_normalized, align_corners=True)
+    deform_z_interpolated = F.grid_sample(deform_z.unsqueeze(0).unsqueeze(0), keypoints_normalized, align_corners=True)
+
+    # Extract interpolated values and add to original keypoints
+    deform_x_interpolated = deform_x_interpolated.view(-1)
+    deform_y_interpolated = deform_y_interpolated.view(-1)
+    deform_z_interpolated = deform_z_interpolated.view(-1)
+    
+    deformed_keypoints = keypoints.clone()
+    deformed_keypoints[:, 0] += deform_x_interpolated
+    deformed_keypoints[:, 1] += deform_y_interpolated
+    deformed_keypoints[:, 2] += deform_z_interpolated
+
+    return deformed_keypoints
+
+
 def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
     kp_spacing   = voxel_spacing if voxel_spacing else [1.75, 1.25, 1.75] 
     flow_spacing = [1, 1, 1] 
-    kp_spacing   = torch.Tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
-    flow_spacing = torch.Tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
+    kp_spacing   = torch.tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
+    flow_spacing = torch.tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
     
     flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
-    intial_tre     = compute_tre(kp1, kp2)
+    initial_tre     = compute_tre(kp1, kp2)
+    
+    # Apply resampled deformation field to kp2
+    deformed_kp2 = apply_deformation_field(flow_resampled, kp2)#(kp1, flow_resampled, kp_spacing)
+    deformed_tre = compute_tre(kp1, deformed_kp2)
+    
+    return [initial_tre], [deformed_tre]
     
 
 # if main
