@@ -346,7 +346,7 @@ def main(args):
             #tre_mean2, tre_std2 = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
-            import ipdb; ipdb.set_trace()
+            #import ipdb; ipdb.set_trace()
             if 'tre_mean' not in metric_keys:
                 metric_keys.append('tre_mean')
                 results['tre_mean'] = []
