@@ -26,7 +26,7 @@ from tools.utils import *
 from run_utils import build_precompute, read_cfg
 from tools.visualization import *
 from tools.utils import convert_tensor_to_numpy, apply_deformation_to_keypoints
-from metrics.losses import compute_TRE_mean_std
+from metrics.losses import compute_initial_deformed_TRE
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
@@ -35,7 +35,7 @@ parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.est
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
 parser.add_argument('-ndir', '--nii_dir',    type=str, default='/data/groups/beets-tan/l.estacio/Med_Align_Net/', help='Directory where .nii.gz wil be stored')
 parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Specifies the task to perform: train|val|test')
-
+parser.add_argument('-vs', '--voxel_spacing', type=list, default=[1.75, 1.25, 1.75], help='specifies the target voxel spacing that the flow should have to compute the TRE')
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
 parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the results as a pkl file')
 parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
@@ -340,19 +340,19 @@ def main(args):
         if args.tre_dist:
             flow = agg_flows[-1]
             #import pdb; pdb.set_trace()
-            trans_kp2, fix_kps = apply_deformation_to_keypoints(kp2, flow, kp1)
-            tre_mean, tre_std  = compute_TRE_mean_std(fix_kps, trans_kp2, [1, 1, 1])#moving_img.GetSpacing()))
-            tre_mean2, tre_std2  = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
-            print('tre_mean, tre_std: ', tre_mean, tre_std)
-            print('tre_mean2, tre_std2: ', tre_mean2, tre_std2)
+            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing)#moving_img.GetSpacing()))
+            #tre_mean2, tre_std2 = compute_TRE_mean_std(fix_kps, kp2, [1, 1, 1])#, [1, 1, 1])
+            print('tre_mean_init, tre_std_init: ', tre_init[0], tre_init[1])
+            print('tre_mean_def, tre_std_def: ', tre_def[0], tre_def[1])
+            import ipdb; ipdb.set_trace()
             if 'tre_mean' not in metric_keys:
                 metric_keys.append('tre_mean')
                 results['tre_mean'] = []
             if 'tre_std' not in metric_keys:
                 metric_keys.append('tre_std')
                 results['tre_std'] = []
-            results['tre_mean'].extend(tre_mean)
-            results['tre_std'].extend(tre_std)
+            results['tre_mean'].extend(tre_init)
+            results['tre_std'].extend(tre_def)
         
         if not args.use_ants and not args.use_elastix:
             del fixed, moving, warped, flows, agg_flows, affine_params
