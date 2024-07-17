@@ -396,8 +396,9 @@ def apply_deformation_field(deformation_field, keypoints):
 
     return deformed_keypoints.unsqueeze(0)
 
-
-def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
+from tools.utils import convert_tensor_to_numpy
+import pandas as pd
+def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None, output_file=None):
     kp_spacing   = voxel_spacing if voxel_spacing else [1.75, 1.25, 1.75] 
     flow_spacing = [1, 1, 1] 
     kp_spacing   = torch.tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
@@ -413,6 +414,16 @@ def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
     print('Kp1', kp1.shape)
     print('Kp2', kp2.shape)
     print('deformed_kp2', deformed_kp2.shape)
+    
+    data = np.hstack((convert_tensor_to_numpy(torch.squeeze(kp1, 0).cpu()),
+                      convert_tensor_to_numpy(torch.squeeze(kp2, 0).cpu()), 
+                      convert_tensor_to_numpy(torch.squeeze(deformed_kp2, 0).cpu())))
+    
+    columns = ['F_x_1.75', 'F_y_1.25', 'F_z_1.75', 
+               'M_x_1.75', 'M_y_1.25', 'M_z_1.75', 
+               'transformed_x', 'transformed_y', 'transformed_z']
+    df = pd.DataFrame(data, columns=columns)
+    df.to_excel(output_file, index=False)
     
     return initial_tre, deformed_tre
     

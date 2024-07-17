@@ -341,7 +341,8 @@ def main(args):
 
         if args.tre_dist:
             flow = agg_flows[-1]
-            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing)
+            path_to_save_points = output_fname.replace('.txt', '_deformed_points.xlsx')
+            tre_init, tre_def   = compute_initial_deformed_TRE(kp1, kp2, flow, args.voxel_spacing, path_to_save_points)
             #import pdb; pdb.set_trace()
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
