@@ -314,6 +314,38 @@ def plot_flow_overlayed_with_image(image, flow, path_to_save):
 
 
 
+import scipy.ndimage
+
+def resample_to_spacing(image, deformation_field, original_spacing, new_spacing):
+    """
+    Resample the image and deformation field to a new voxel spacing.
+    
+    Args:
+        image (numpy.ndarray): 3D array of image slices of shape (D, H, W).
+        deformation_field (numpy.ndarray): Deformation field of shape (3, D, H, W).
+        original_spacing (tuple): Original voxel spacing (sx, sy, sz).
+        new_spacing (tuple): New voxel spacing (nx, ny, nz).
+    
+    Returns:
+        resampled_image (numpy.ndarray): Resampled image.
+        resampled_deformation_field (numpy.ndarray): Resampled deformation field.
+    """
+    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    
+    # Resample the image
+    resampled_image = scipy.ndimage.zoom(image, resize_factors, order=1)
+    
+    # Resample each component of the deformation field separately
+    resampled_deformation_field = np.zeros((3, *resampled_image.shape))
+    for i in range(3):
+        resampled_deformation_field[i] = scipy.ndimage.zoom(deformation_field[i], resize_factors, order=1)
+        # Adjust deformation magnitudes according to the new spacing
+        resampled_deformation_field[i] *= resize_factors[i]
+
+    return resampled_image, resampled_deformation_field
+
+
+
 def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step=10, quiver_scale=1):
     """
     Overlays the deformation field on image slices and saves the output images.
@@ -324,6 +356,10 @@ def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step
         output_dir (str): Directory to save the output images.
         grid_step (int): Step size for the grid overlay.
     """
+    original_spacing = [1, 1, 1]
+    new_spacing      = [1.75, 1.25, 1.75]
+    image_slices, deformation_field = resample_to_spacing(image_slices, deformation_field, original_spacing, new_spacing)
+    
     output_dir = path_to_save + 'flow_grid/' 
     os.makedirs(output_dir, exist_ok=True)
     if not os.path.exists(output_dir):
@@ -430,13 +466,13 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
-    save_heatmap_flow(flow, path_to_save)
+    #save_heatmap_flow(flow, path_to_save)
     #import pdb; pdb.set_trace()
     ##jdet  = get_jacobian_det(flow3)
     ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
     norm_flow3 = normalize_flow(flow3)
     plot_flow_with_grid(img1, flow3, path_to_save)
-    plot_jac_det(img1, norm_flow3, path_to_save)
+    #plot_jac_det(img1, norm_flow3, path_to_save)
     import pdb; pdb.set_trace()
     
     img1  = convert_nda_to_itk(img1, itk_img1)
