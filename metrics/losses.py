@@ -346,6 +346,37 @@ def compute_TRE_mean_std(points_fixed, points_moved, voxel_spacing):
 
     return [torch.mean(distances).item()], [torch.std(distances).item()]
 
+def resample_flow(flow, original_spacing, target_spacing):
+    # Compute the scaling factors for each dimension
+    scaling_factors = [o / t for o, t in zip(original_spacing, target_spacing)]
+    
+    # Compute the new shape of the flow based on scaling factors
+    new_shape = [int(flow.shape[i+2] * scaling_factors[i]) for i in range(3)]
+    
+    # Resample the flow using trilinear interpolation
+    flow_resampled = F.interpolate(flow, size=new_shape, mode='trilinear', align_corners=True)
+    
+    return flow_resampled
+
+
+def compute_tre(kp1, kp2):
+    # Compute the TRE between kp1 and kp2
+    tre      = torch.norm(kp1 - kp2, dim=-1)
+    tre_mean = tre.mean()
+    tre_std  = tre.std()
+    return (tre_mean, tre_std)
+
+
+def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None):
+    kp_spacing   = voxel_spacing if voxel_spacing else [1.75, 1.25, 1.75] 
+    flow_spacing = [1, 1, 1] 
+    kp_spacing   = torch.Tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
+    flow_spacing = torch.Tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
+    
+    flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
+    intial_tre     = compute_tre(kp1, kp2)
+    
+
 # if main
 if __name__ == '__main__':
     import numpy as np
