@@ -398,6 +398,7 @@ def apply_deformation_field(deformation_field, keypoints):
 
 from tools.utils import convert_tensor_to_numpy
 import pandas as pd
+import os
 def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None, output_file=None):
     kp_spacing   = voxel_spacing if voxel_spacing else [1.75, 1.25, 1.75] 
     flow_spacing = [1, 1, 1] 
@@ -414,7 +415,10 @@ def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None, output_file
     print('Kp1', kp1.shape)
     print('Kp2', kp2.shape)
     print('deformed_kp2', deformed_kp2.shape)
+    print(kp1 == kp2)
     
+    
+        
     data = np.hstack((convert_tensor_to_numpy(torch.squeeze(kp1, 0).cpu()),
                       convert_tensor_to_numpy(torch.squeeze(kp2, 0).cpu()), 
                       convert_tensor_to_numpy(torch.squeeze(deformed_kp2, 0).cpu())))
