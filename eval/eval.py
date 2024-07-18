@@ -147,7 +147,7 @@ def main(args):
             else: data[k] = data[k][idx,...]
         return data
 
-
+    #val_loader_list = list(val_loader)
     for iteration, data in tqdm(enumerate(val_loader)):
         seg1, seg2 = data['segmentation1'], data['segmentation2']
         seg1, seg2 = data['segmentation1'].float(), data['segmentation2'].float()
@@ -348,7 +348,6 @@ def main(args):
             #import pdb; pdb.set_trace()
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
-            #import ipdb; ipdb.set_trace()
             if 'tre_mean' not in metric_keys:
                 metric_keys.append('tre_mean')
                 results['tre_mean'] = []
