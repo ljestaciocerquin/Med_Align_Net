@@ -341,15 +341,8 @@ def apply_deformation(kp, flow, spacing):
     voxel_coords = (2.0 * voxel_coords / torch.tensor(flow.shape[2:], device=kp.device) - 1.0)
     
     # Reshape for grid_sample
-    print('voxel_coords: ', voxel_coords.shape)
-    print('voxel_coords.unsqueeze(0): ', voxel_coords.unsqueeze(0).shape)
-    print('voxel_coords.unsqueeze(0).unsqueeze(0): ', voxel_coords.unsqueeze(0).unsqueeze(0).shape)
     voxel_coords = voxel_coords.unsqueeze(0).unsqueeze(0)
     #voxel_coords = voxel_coords.permute(0, 2, 3, 4, 1)
-    print('final voxel_coords: ', voxel_coords.shape)
-    
-    print('voxel_coords: ', voxel_coords.shape)
-    print('flow.unsqueeze(0): ', flow.unsqueeze(0).shape)
     
     # Interpolate the flow at the keypoint voxel coordinates using trilinear interpolation
     deformed_voxels = F.grid_sample(flow, voxel_coords, mode='bilinear', align_corners=True)
@@ -406,7 +399,7 @@ def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, outpu
     flow_spacing = torch.tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
     
     # Apply resampled deformation field to kp2
-    #flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
+    #flow_resampled = resample_flow(flow, flow_spacing, kp_spacing) # Other way of resampling
     #deformed_kp2   = apply_deformation_field(flow_resampled, kp2)
     
     #Resampling using scipy as for the visualization
@@ -419,15 +412,9 @@ def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, outpu
     flow3_resampled = flow3_resampled[None, :]
     deformed_kp2    = apply_deformation_field(flow3_resampled, kp2)
     
-    
-    initial_tre    = compute_tre(kp1 , kp2)
+    initial_tre  = compute_tre(kp1 , kp2)
     deformed_tre = compute_tre(kp1, deformed_kp2)
 
-    print('Kp1', kp1.shape)
-    print('Kp2', kp2.shape)
-    print('deformed_kp2', deformed_kp2.shape)
-    print('Nitital: ', initial_tre, '    final: ', deformed_tre)
-        
     data = np.hstack((convert_tensor_to_numpy(torch.squeeze(kp1, 0).cpu()),
                       convert_tensor_to_numpy(torch.squeeze(kp2, 0).cpu()), 
                       convert_tensor_to_numpy(torch.squeeze(deformed_kp2, 0).cpu())))
