@@ -324,10 +324,10 @@ def resample_flow(flow, original_spacing, target_spacing):
     
     return flow_resampled
 
-
 def compute_tre(kp1, kp2):
     # Compute the TRE between kp1 and kp2
     tre      = torch.norm((kp1 - kp2), dim=-1)
+    #tre = np.linalg.norm(kp1 - kp2, axis=-1)
     tre_mean = tre.mean()
     tre_std  = tre.std()
     return [tre_mean, tre_std]
@@ -396,26 +396,33 @@ def apply_deformation_field(deformation_field, keypoints):
 
     return deformed_keypoints.unsqueeze(0)
 
-from tools.utils import convert_tensor_to_numpy
+from tools.utils import convert_tensor_to_numpy, resample_to_spacing
 import pandas as pd
 import os
-def compute_initial_deformed_TRE(kp1, kp2, flow, voxel_spacing=None, output_file=None):
+def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, output_file=None):
     kp_spacing   = voxel_spacing if voxel_spacing else [1.75, 1.25, 1.75] 
     flow_spacing = [1, 1, 1] 
     kp_spacing   = torch.tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
     flow_spacing = torch.tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
     
-    flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
-    initial_tre    = compute_tre(kp1 , kp2)
+    #flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
+    flow3 = np.squeeze(convert_tensor_to_numpy(flow), axis=(0))
+    img1  = np.squeeze(convert_tensor_to_numpy(img1), axis=(0,1))
+    original_spacing = [1, 1, 1]
+    new_spacing      = [1.75, 1.25, 1.75]
+    img1_resampled, flow3_resampled = resample_to_spacing(img1, flow3, original_spacing, new_spacing)
+    flow3_resampled = torch.from_numpy(flow3_resampled).cuda().type(torch.float32)
+    flow3_resampled = flow3_resampled[None, :]
     
     # Apply resampled deformation field to kp2
-    deformed_kp2 = apply_deformation_field(flow_resampled, kp2)#(kp1, flow_resampled, kp_spacing)
+    deformed_kp2 = apply_deformation_field(flow3_resampled, kp2)#(kp1, flow_resampled, kp_spacing)
+    initial_tre    = compute_tre(kp1 , kp2)
     deformed_tre = compute_tre(kp1, deformed_kp2)
 
     print('Kp1', kp1.shape)
     print('Kp2', kp2.shape)
     print('deformed_kp2', deformed_kp2.shape)
-    print(kp1 == kp2)
+    print('Nitital: ', initial_tre, '    final: ', deformed_tre)
     
     
         
