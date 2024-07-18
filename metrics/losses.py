@@ -405,7 +405,11 @@ def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, outpu
     kp_spacing   = torch.tensor(kp_spacing,   dtype=kp1.dtype, device=kp1.device)
     flow_spacing = torch.tensor(flow_spacing, dtype=kp1.dtype, device=kp1.device)
     
-    #flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
+    # Apply resampled deformation field to kp2
+    flow_resampled = resample_flow(flow, flow_spacing, kp_spacing)
+    deformed_kp2   = apply_deformation_field(flow_resampled, kp2)
+    
+    ''' Resampling using scipy as for the visualization
     flow3 = np.squeeze(convert_tensor_to_numpy(flow), axis=(0))
     img1  = np.squeeze(convert_tensor_to_numpy(img1), axis=(0,1))
     original_spacing = [1, 1, 1]
@@ -413,9 +417,9 @@ def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, outpu
     img1_resampled, flow3_resampled = resample_to_spacing(img1, flow3, original_spacing, new_spacing)
     flow3_resampled = torch.from_numpy(flow3_resampled).cuda().type(torch.float32)
     flow3_resampled = flow3_resampled[None, :]
+    deformed_kp2    = apply_deformation_field(flow3_resampled, kp2)
+    '''
     
-    # Apply resampled deformation field to kp2
-    deformed_kp2 = apply_deformation_field(flow3_resampled, kp2)#(kp1, flow_resampled, kp_spacing)
     initial_tre    = compute_tre(kp1 , kp2)
     deformed_tre = compute_tre(kp1, deformed_kp2)
 
@@ -423,8 +427,6 @@ def compute_initial_deformed_TRE(img1, kp1, kp2, flow, voxel_spacing=None, outpu
     print('Kp2', kp2.shape)
     print('deformed_kp2', deformed_kp2.shape)
     print('Nitital: ', initial_tre, '    final: ', deformed_tre)
-    
-    
         
     data = np.hstack((convert_tensor_to_numpy(torch.squeeze(kp1, 0).cpu()),
                       convert_tensor_to_numpy(torch.squeeze(kp2, 0).cpu()), 
