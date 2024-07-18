@@ -4,6 +4,8 @@ from PIL import Image
 import numpy as np
 import SimpleITK as sitk
 import pandas as pd
+import scipy.ndimage
+
 
 def convert_tensor_to_numpy(tensor):
     if isinstance(tensor, torch.Tensor):
@@ -100,7 +102,130 @@ def convert_itk_to_nda(itk_image: sitk.Image):
     """
     return np.moveaxis(sitk.GetArrayFromImage(itk_image), 0, -1)
 
-def normalize_points(points, original_spacing, target_spacing):
+
+
+def normalize_flow(deformation_field):
+    min_val = deformation_field.min()
+    max_val = deformation_field.max()
+    normalized_field = 2 * (deformation_field - min_val) / (max_val - min_val) - 1
+    return normalized_field
+
+
+def normalize_keypoints(points, original_spacing, target_spacing):
+    """
+    Normalize points from original voxel spacing to target voxel spacing.
+    
+    Args:
+        points (torch.Tensor): Tensor of points of shape (N, 3).
+        original_spacing (torch.Tensor or list or tuple): Original voxel spacing.
+        target_spacing (torch.Tensor or list or tuple): Target voxel spacing.
+    
+    Returns:
+        torch.Tensor: Normalized points of shape (N, 3).
+    """
+    original_spacing = torch.tensor(original_spacing, dtype=points.dtype, device=points.device)
+    target_spacing   = torch.tensor(target_spacing, dtype=points.dtype, device=points.device)
+    scale_factors    = original_spacing / target_spacing
+    return points * scale_factors
+
+
+
+def resample_image_to_spacing(image, original_spacing, new_spacing):
+    
+    """
+    Resample the image to a new voxel spacing.
+    
+    Args:
+        image (numpy.ndarray): 3D array of image slices of shape (D, H, W).
+        original_spacing (tuple): Original voxel spacing (sx, sy, sz).
+        new_spacing (tuple): New voxel spacing (nx, ny, nz).
+    
+    Returns:
+        resampled_image (numpy.ndarray): Resampled image.
+    """
+    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    resampled_image = scipy.ndimage.zoom(image, resize_factors, order=1)
+    return resampled_image
+
+
+def resample_flow_considering_img_to_spacing(flow, original_spacing, new_spacing, resampled_image_size):
+    """
+    Resample the deformation field to a new voxel spacing.
+    
+    Args:
+        deformation_field (numpy.ndarray): 4D array of deformation field of shape (3, D, H, W).
+        original_spacing (tuple): Original voxel spacing (sx, sy, sz).
+        new_spacing (tuple): New voxel spacing (nx, ny, nz).
+        resampled_image_shape (tuple): Shape of the resampled image (D, H, W).
+    
+    Returns:
+        resampled_deformation_field (numpy.ndarray): Resampled deformation field.
+    """
+    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    resampled_deformation_field = np.zeros((3, *resampled_image_size))
+    for i in range(3):
+        resampled_deformation_field[i] = scipy.ndimage.zoom(flow[i], resize_factors, order=1)
+        # Adjust deformation magnitudes according to the new spacing
+        resampled_deformation_field[i] *= resize_factors[i]
+
+    return resampled_deformation_field
+ 
+
+def resample_flow_to_spacing(deformation_field, original_spacing, new_spacing):
+    """
+    Resample the deformation field to a new voxel spacing.
+    
+    Args:
+        deformation_field (numpy.ndarray): 4D array of deformation field of shape (3, D, H, W).
+        original_spacing (tuple): Original voxel spacing (sx, sy, sz).
+        new_spacing (tuple): New voxel spacing (nx, ny, nz).
+    
+    Returns:
+        resampled_deformation_field (numpy.ndarray): Resampled deformation field.
+    """
+    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    original_shape = deformation_field.shape[1:]  # Get the original shape (D, H, W)
+    new_shape = np.round(np.array(original_shape) * resize_factors).astype(int)  # Calculate new shape
+    resampled_deformation_field = np.zeros((3, *new_shape))
+    for i in range(3):
+        resampled_deformation_field[i] = scipy.ndimage.zoom(deformation_field[i], resize_factors, order=1)
+        # Adjust deformation magnitudes according to the new spacing
+        resampled_deformation_field[i] *= resize_factors[i]
+    return resampled_deformation_field
+
+
+def resample_to_spacing(image, deformation_field, original_spacing, new_spacing):
+    """
+    Resample the image and deformation field to a new voxel spacing.
+    
+    Args:
+        image (numpy.ndarray): 3D array of image slices of shape (D, H, W).
+        deformation_field (numpy.ndarray): Deformation field of shape (3, D, H, W).
+        original_spacing (tuple): Original voxel spacing (sx, sy, sz).
+        new_spacing (tuple): New voxel spacing (nx, ny, nz).
+    
+    Returns:
+        resampled_image (numpy.ndarray): Resampled image.
+        resampled_deformation_field (numpy.ndarray): Resampled deformation field.
+    """
+    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    
+    # Resample the image
+    resampled_image = scipy.ndimage.zoom(image, resize_factors, order=1)
+    
+    # Resample each component of the deformation field separately
+    resampled_deformation_field = np.zeros((3, *resampled_image.shape))
+    for i in range(3):
+        resampled_deformation_field[i] = scipy.ndimage.zoom(deformation_field[i], resize_factors, order=1)
+        # Adjust deformation magnitudes according to the new spacing
+        resampled_deformation_field[i] *= resize_factors[i]
+
+    return resampled_image, resampled_deformation_field
+
+
+
+
+def normalize_keypoints(points, original_spacing, target_spacing):
     """
     Normalize points from original voxel spacing to target voxel spacing.
     
@@ -130,8 +255,8 @@ def apply_deformation_to_keypoints(moving_keypoints, deformation_field, fixed_ke
         torch.Tensor: Transformed moving keypoints of shape (B, N, 3).
     """
     batch_size = moving_keypoints.shape[0]
-    mov_kps = normalize_points(torch.squeeze(moving_keypoints, 0), [1, 1, 1], [1, 1, 1])
-    fix_kps = normalize_points(torch.squeeze(fixed_keypoints, 0), [1, 1, 1], [1, 1, 1])
+    mov_kps = normalize_keypoints(torch.squeeze(moving_keypoints, 0), [1, 1, 1], [1, 1, 1])
+    fix_kps = normalize_keypoints(torch.squeeze(fixed_keypoints, 0), [1, 1, 1], [1, 1, 1])
     mov_kps = mov_kps[None, :]
     fix_kps = fix_kps[None, :]
     transformed_keypoints = []
@@ -151,7 +276,6 @@ def apply_deformation_to_keypoints(moving_keypoints, deformation_field, fixed_ke
         transformed_keypoints.append(transformed_batch_keypoints)
     
     transformed_keypoints = torch.tensor(transformed_keypoints)
-    print('Hellooooooooooo: ', transformed_keypoints.shape)
     data = np.hstack((convert_tensor_to_numpy(torch.squeeze(fixed_keypoints, 0).cpu()),
                       convert_tensor_to_numpy(torch.squeeze(moving_keypoints, 0).cpu()), 
                       convert_tensor_to_numpy(torch.squeeze(fix_kps, 0).cpu()),
@@ -164,6 +288,6 @@ def apply_deformation_to_keypoints(moving_keypoints, deformation_field, fixed_ke
                'M_x_1', 'M_y_1', 'M_z_1', 
                'transformed_x', 'transformed_y', 'transformed_z']
     df = pd.DataFrame(data, columns=columns)
-    df.to_csv('./output_csv.csv', index=False)
+    df.to_csv('./normalized_keypoints.csv', index=False)
     
     return transformed_keypoints, fix_kps
