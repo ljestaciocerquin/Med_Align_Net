@@ -455,7 +455,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     #import pdb; pdb.set_trace()
     
     #import pdb; pdb.set_trace()
-    #jdet  = get_jacobian_det(flow3)
+    jdet  = get_jacobian_det(flow3)
     ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
     
     img1  = convert_nda_to_itk(img1, itk_img1)
