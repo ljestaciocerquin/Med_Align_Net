@@ -380,7 +380,7 @@ def plot_flow_with_grid(image_slices, deformation_field, path_to_save, grid_step
 
         # Add quiver plot for the deformation field
         ax.quiver(rotated_xv, rotated_yv, rotated_dx, rotated_dy, angles='xy', scale_units='xy', scale=quiver_scale, color='yellow', alpha=0.7)
-
+        plt.title(f'Deformation Magnitude at Slice {i}')
         plt.axis('off')
 
         output_path = os.path.join(output_dir, f'slice_{i:03d}.png')
@@ -419,7 +419,8 @@ def plot_jac_det(image, flow, path_to_save):
         plt.imshow(np.rot90(image_slice, 2), cmap='gray')
         plt.imshow(np.rot90(jacobian_determinant,2), cmap='plasma', alpha=0.6)
         plt.colorbar(label='Jacobian Determinant')
-        #plt.title(f'Jacobian Determinant (Slice {slice})')
+        plt.title(f'Jacobian Determinant (Slice {slice})')
+        plt.axis('off')
         plt.savefig(os.path.join(output_dir, f'slice_{slice}.png'))
         plt.close()
 
@@ -451,10 +452,10 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     save_heatmap_flow(np.linalg.norm(flow3_resampled, axis=0), path_to_save)
     plot_flow_with_grid(img1_resampled, flow3_resampled, path_to_save)
     plot_jac_det(img1_resampled, flow3_resampled, path_to_save)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     
     #import pdb; pdb.set_trace()
-    ##jdet  = get_jacobian_det(flow3)
+    #jdet  = get_jacobian_det(flow3)
     ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
     
     img1  = convert_nda_to_itk(img1, itk_img1)
@@ -464,8 +465,8 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     w_img = convert_nda_to_itk(w_img, itk_img1) 
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
     flow  = convert_nda_to_itk(flow, itk_img1)
-    #jdet  = convert_nda_to_itk(jdet, itk_img1) 
-    import pdb; pdb.set_trace()
+    jdet  = convert_nda_to_itk(jdet, itk_img1) 
+    #import pdb; pdb.set_trace()
       
     
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
@@ -475,4 +476,4 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     sitk.WriteImage(w_img, path_to_save + 'w_img.nii.gz')
     sitk.WriteImage(w_seg, path_to_save + 'w_seg.nii.gz')
     sitk.WriteImage(flow, path_to_save + 'flow.nii.gz')
-    #sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
+    sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
