@@ -25,7 +25,6 @@ from data_util.dataset import Data
 from tools.utils import *
 from run_utils import build_precompute, read_cfg
 from tools.visualization import *
-from tools.utils import convert_tensor_to_numpy, apply_deformation_to_keypoints
 from metrics.losses import compute_initial_deformed_TRE
 
 parser = argparse.ArgumentParser()
