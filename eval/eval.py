@@ -157,7 +157,7 @@ def main(args):
         kp1, kp2      = data['kps1'], data['kps2']
         
         if args.use_ants:
-            pred                      = ants_pred(fixed, moving, seg2, kp2)
+            pred                      = ants_pred(fixed, moving, seg2)
             w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
             w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
             warped                    = [torch.from_numpy(warped).float().cuda()]
@@ -344,8 +344,8 @@ def main(args):
             if not os.path.exists(directory):
                 os.makedirs(os.path.dirname(directory), exist_ok=True)
             filename  = directory + 'deformed_keypoints_' + str(iteration) + '.xlsx'
+            import pdb; pdb.set_trace()
             tre_init, tre_def   = compute_initial_deformed_TRE(fixed, kp1, kp2, flow, args.voxel_spacing, filename)
-            #import pdb; pdb.set_trace()
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
             if 'tre_mean' not in metric_keys:
