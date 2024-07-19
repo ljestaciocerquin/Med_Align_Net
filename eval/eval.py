@@ -344,7 +344,7 @@ def main(args):
             if not os.path.exists(directory):
                 os.makedirs(os.path.dirname(directory), exist_ok=True)
             filename  = directory + 'deformed_keypoints_' + str(iteration) + '.xlsx'
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             tre_init, tre_def   = compute_initial_deformed_TRE(fixed, kp1, kp2, flow, args.voxel_spacing, filename)
             print('tre_mean_init, tre_std_init: ', tre_init)
             print('tre_mean_def, tre_std_def: ', tre_def)
