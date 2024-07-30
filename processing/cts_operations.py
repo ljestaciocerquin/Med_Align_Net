@@ -367,3 +367,21 @@ class ToAbdomenWindowLevelNormalization(TransformProcessor):
         image = np.clip(image, self.min_hu, self.max_hu)
         image = (image - self.min_hu) / (self.max_hu - self.min_hu) * (self.new_max - self.new_min) + self.new_min
         return image
+    
+    
+class ToNumpyArrayAbdomen(TransformProcessor):
+
+    def __init__(self, add_batch_dim=False, add_singleton_dim=False):
+        self.add_batch_dim     = add_batch_dim
+        self.add_singleton_dim = add_singleton_dim
+        super(ToNumpyArrayAbdomen, self).__init__()
+
+    def __call__(self, image):
+        #image     = np.moveaxis(sitk.GetArrayFromImage(image), 0, -1) # This work for Lung, however for the abdomen dataset. It wasn't working. Weird!
+        image = sitk.GetArrayFromImage(image)
+        image = np.moveaxis(image, [0, 1, 2], [2, 1, 0])
+        if self.add_batch_dim:
+            image = image[None]
+        if self.add_singleton_dim:
+            image = image[..., None]
+        return image
