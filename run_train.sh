@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --time=5-00:00:00                        # Time limit hrs:min:sec
-#SBATCH --job-name=lung_tsm                    # Job name
+#SBATCH --job-name=abdomen                    # Job name
 #SBATCH --qos=a6000_qos
 #SBATCH --partition=rtx8000                        # Partition
 #SBATCH --nodelist=roentgen                    # Node name
@@ -13,7 +13,9 @@ pwd; hostname; date
 
 # Activate conda environment pyenv
 source /home/l.estacio/miniconda3/bin/activate pytorch
-rsync -avv --info=progress2 --ignore-existing /data/groups/beets-tan/l.estacio/lung_data/LungCT /processing/l.estacio/
+#rsync -avv --info=progress2 --ignore-existing /data/groups/beets-tan/l.estacio/lung_data/LungCT /processing/l.estacio/
 
 # Run your command
 python /projects/disentanglement_methods/Med_Align_Net/train.py
+python /projects/disentanglement_methods/Med_Align_Net/train.py -base VTN
+python /projects/disentanglement_methods/Med_Align_Net/train.py -base TSM

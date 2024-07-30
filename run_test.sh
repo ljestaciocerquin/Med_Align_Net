@@ -16,8 +16,9 @@ source /home/l.estacio/miniconda3/bin/activate pytorch
 rsync -avv --info=progress2 --ignore-existing /data/groups/beets-tan/l.estacio/lung_data/LungCT /processing/l.estacio/
 
 # Run your command
-python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth -sn
-python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_100.pth -sn
-python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/TSM/train/Jul10-164631_lutrain_TSMx1___/model_wts/epoch_100.pth -sn
-python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -ue -en elastix -sn
-python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -ua -en ants -sn
+#python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth -sn
+#python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_100.pth -sn
+#python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -c /projects/disentanglement_methods/Med_Align_Net/logs/lung/TSM/train/Jul10-164631_lutrain_TSMx1___/model_wts/epoch_100.pth -sn
+#python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -ue -en elastix -sn
+#python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -ua -en ants -sn
+python /projects/disentanglement_methods/Med_Align_Net/eval/eval.py -sn
