@@ -28,7 +28,7 @@ from tools.visualization import *
 from metrics.losses import compute_initial_deformed_TRE
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VXM/train/Jun24-204642_lutrain_VXMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
+parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_104.pth', help='Specifies a previous checkpoint to load')
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
 parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
 parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
@@ -99,7 +99,7 @@ def main(args):
     import re
     # "([^\/]*_\d{6}_[^\/]*)"gm
     exp_name = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
-    exp_name += 'temp' # In case an additional name is given 
+    exp_name += 'ours' # In case an additional name is given 
     print('Experiment Name: ', exp_name)
     output_fname = './eval/results/{}_{}.txt'.format(args.task_mode, exp_name)
     print('output_fname: ', output_fname)
