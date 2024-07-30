@@ -14,17 +14,19 @@ from tools.utils import resample_to_spacing
 
 def plot_sample_data(sample, slide=80, save_path=None):
     
-    print('sample shape: ', sample['voxel1'].shape)
     voxel1 = convert_tensor_to_numpy(sample['voxel1'])
     voxel2 = convert_tensor_to_numpy(sample['voxel2'])
     segmentation1 = convert_tensor_to_numpy(sample['segmentation1'])
     segmentation2 = convert_tensor_to_numpy(sample['segmentation2'])
-    print('Shape: ', segmentation1.shape)
+    voxel1 = voxel1[0]
+    voxel2 = voxel2[0]
+    segmentation1 = segmentation1[0]
+    segmentation2 = segmentation2[0]
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))
-    axs[0, 0].imshow(voxel1[:, :, :, slide], cmap='gray') # slide shouls be the last axis
-    axs[0, 1].imshow(voxel2[:, :, :, slide], cmap='gray')
-    axs[1, 0].imshow(segmentation1[:, :, :, slide], cmap='gray')
-    axs[1, 1].imshow(segmentation2[:, :, :, slide], cmap='gray')
+    axs[0, 0].imshow(voxel1[:, :, slide], cmap='gray') # slide shouls be the last axis
+    axs[0, 1].imshow(voxel2[:, :, slide], cmap='gray')
+    axs[1, 0].imshow(segmentation1[:, :, slide], cmap='gray')
+    axs[1, 1].imshow(segmentation2[:, :, slide], cmap='gray')
     
     axs[0, 0].axis('off')
     axs[0, 1].axis('off')
