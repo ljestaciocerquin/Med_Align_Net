@@ -298,20 +298,3 @@ if __name__  == '__main__':
     print(len(data))
     plot_sample_data(data[0], slide=164, save_path='./164_abd.png')
     #print(data[0])
-
-# %%
-#import os
-#import json
-#data_path='/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/'
-#with open(os.path.join(data_path,'AbdomenCTCT_dataset.json')) as f:
-#    dataset_info=json.load(f)
-
-#val_list=sorted(list(set([x['fixed'] for x in dataset_info['registration_val']] 
-#             + [x['moving'] for x in dataset_info['registration_val']])))
-#validation_ = dataset_info['registration_val']
-#training_ = [x for x in dataset_info['training'] if x['image'] not in val_list]
-#print(training_)
-#H,W,D = dataset_info['tensorImageShape']['0']
-#num_val=len(val_list); num_train=len(training_)
-#print('Training:',len(training_),'; Validation',len(val_list))
-# %%
