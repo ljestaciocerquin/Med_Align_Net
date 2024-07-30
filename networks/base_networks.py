@@ -10,7 +10,7 @@ from   . import hyper_net as hn
 
 from networks.TSM.TransMorph          import CONFIGS as cfg_tsm,   TransMorph as tsm
 from networks.TSM_A.TransMorph_affine import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
-BASE_NETWORK = ['VTN', 'VXM', 'TSM']
+BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'MAN']
 
 def conv(dim=2):
     if dim == 2:
