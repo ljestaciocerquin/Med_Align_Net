@@ -29,8 +29,8 @@ parser = argparse.ArgumentParser()
 
 # Training settings
 parser.add_argument('-bs', "--batch_size", type=int, default=1)
-parser.add_argument('-e', "--epochs",      type=int, default=205)
-parser.add_argument("-r", "--round",       type=int, default=20)
+parser.add_argument('-e', "--epochs",      type=int, default=105)
+parser.add_argument("-r", "--round",       type=int, default=60)
 parser.add_argument("-v", "--val_steps",   type=int, default=5)
 parser.add_argument("--lr",                type=float, default=1e-4)
 parser.add_argument('--lr_scheduler', default='step', type=str, choices=['linear', 'step', 'cosine'], help='lr scheduler')
@@ -47,12 +47,13 @@ parser.add_argument('-ct', '--continue_training',    action='store_true')
 parser.add_argument('--ctt', '--continue_training_this', type=lambda x: os.path.realpath(x), default=None)
 
 # Dataset settings
-parser.add_argument('-d', '--dataset',     type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
-parser.add_argument('-rd', '--root_dir',   type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-d', '--dataset',     type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json', help='Specifies a data config') #'/processing/l.estacio/LungCT/LungCT_dataset.json'
+parser.add_argument('-rd', '--root_dir',   type=str, default='/processing/l.estacio/AbdomenCTCT/', help='Specifies the root directory where images are stored') #'/processing/l.estacio/LungCT/'
 parser.add_argument('-tm', '--task_mode',  type=str, default='train', help='Specifies the task to perform: train|val|test')
 parser.add_argument('-ic', '--in_channel', type=int, default=2,  help='Input channel number')
 parser.add_argument('-g', '--gpu',         type=str, default='', help='GPU to use')
 parser.add_argument('--name',              type=str, default='')
+parser.add_argument('-is', '--img_size',   type=list, default=[192, 160, 256], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
 
 # Regular loss settings
 parser.add_argument('--ortho', type=float, default=0.1, help="use ortho loss")
@@ -117,7 +118,7 @@ def main(args):
     
     train_dataset  = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode)
     val_dataset    = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode) # Improve this
-    data_type      = 'liver' if 'liver' in args.dataset else 'lung'
+    data_type      = 'Abdomen' if 'Abdomen' in args.dataset else 'lung'
     ckp_freq       = int(args.checkpoint_frequency * args.round)
     args.data_type = data_type
 
@@ -201,7 +202,7 @@ def main(args):
     # read config
     with open(args.dataset, 'r') as f:
         cfg        = json.load(f)
-        image_size = cfg.get('image_size', [192, 192, 208])
+        image_size = cfg.get('image_size', args.img_size)
         segmentation_class_value = cfg.get('segmentation_class_value', {'unknown':1})
 
     in_channels = args.in_channel
