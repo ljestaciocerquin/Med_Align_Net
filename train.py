@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 
 # Training settings
 parser.add_argument('-bs', "--batch_size", type=int, default=1)
-parser.add_argument('-e', "--epochs",      type=int, default=105)
+parser.add_argument('-e', "--epochs",      type=int, default=205)
 parser.add_argument("-r", "--round",       type=int, default=20)
 parser.add_argument("-v", "--val_steps",   type=int, default=5)
 parser.add_argument("--lr",                type=float, default=1e-4)
@@ -60,7 +60,7 @@ parser.add_argument('--det',   type=float, default=0.1, help="use det loss")
 parser.add_argument('--reg',   type=float, default=1,   help="use reg loss")
 
 # Network structure settings
-parser.add_argument('-base', '--base_network', type=str, default='TSM')#
+parser.add_argument('-base', '--base_network', type=str, default='VXM')#
 parser.add_argument('-n', "--n_cascades",      type=int, default=3)
 parser.add_argument('-ua', '--use_affine',     type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], default=True, help="whether to use affine transformation")
 
