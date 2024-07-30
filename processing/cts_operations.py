@@ -348,3 +348,22 @@ class ToLungWindowLevelNormalization(TransformProcessor):
         image = np.clip(image, self.min_hu, self.max_hu)
         image = (image - self.min_hu) / (self.max_hu - self.min_hu) * (self.new_max - self.new_min) + self.new_min
         return image
+    
+
+class ToAbdomenWindowLevelNormalization(TransformProcessor):
+    def __init__(self):
+        # Lung tissue typically falls within a specific range of Hounsfield Units. 
+        self.min_hu  = 30
+        self.max_hu  = 400
+        self.new_min = 0
+        self.new_max = 1
+        super(ToAbdomenWindowLevelNormalization, self).__init__()
+    
+    def __call__(self, image):
+        # Convert pixel values to Hounsfield Units
+        #image = sitk.GetArrayFromImage(image)
+        image = sitk.GetArrayFromImage(image)
+        image = np.moveaxis(image, [0, 1, 2], [2, 1, 0])
+        image = np.clip(image, self.min_hu, self.max_hu)
+        image = (image - self.min_hu) / (self.max_hu - self.min_hu) * (self.new_max - self.new_min) + self.new_min
+        return image
