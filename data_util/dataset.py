@@ -9,6 +9,7 @@ sys.path.append("..")
 from processing.cts_processors import ScanProcessor
 from processing.cts_operations import ReadVolume
 from processing.cts_operations import ToNumpyArray
+from processing.cts_operations import ToNumpyArrayAbdomen
 from processing.cts_operations import ToLungWindowLevelNormalization
 from processing.cts_operations import ToAbdomenWindowLevelNormalization
 
@@ -133,10 +134,6 @@ class RawDataLung():
             lmks2 = torch.from_numpy(self.read_keypoints(self.data[idx]['mov']['landmarks']))
             ret['lmks1'] = lmks1
             ret['lmks2'] = lmks2
-
-        print('ret[voxel1]: ', ret['voxel1'].shape)
-        print('ret[segmentation2]: ', ret['segmentation2'].shape)
-        
         return ret
             
 
@@ -183,14 +180,16 @@ class RawDataAbdomen():
             fixed_image  = entry['image']
             moving_image = random.choice(training_)['image']
             fixed_mask   = fixed_image.replace('imagesTr', 'labelsTr')
-            moving_mask  = moving_image.replace('imagesTr', 'labelsTr')
-            pair = {
-                'fix': fixed_image,
-                'mov': moving_image,
-                'fix_seg': fixed_mask,
-                'mov_seg': moving_mask
-            }
-            pairs.append(pair)
+            
+            for i in range(3):
+                moving_mask  = moving_image.replace('imagesTr', 'labelsTr')
+                pair = {
+                    'fix': fixed_image,
+                    'mov': moving_image,
+                    'fix_seg': fixed_mask,
+                    'mov_seg': moving_mask
+                }
+                pairs.append(pair)
         return pairs
     
     
@@ -222,7 +221,7 @@ class RawDataAbdomen():
     def __init_label_loader(self):
         return ScanProcessor(
             ReadVolume(),
-            ToNumpyArray()
+            ToNumpyArrayAbdomen()
         )
         
               
@@ -240,7 +239,6 @@ class RawDataAbdomen():
     def __getitem__(self, idx: int):
         
         ret = {}
-        print('Helooooooooooooooooooo: ', self.data[idx]['fix'])
         voxel1        = torch.from_numpy(self.scan_loader(self.data[idx]['fix'])).type(self.inp_dtype)
         voxel2        = torch.from_numpy(self.scan_loader(self.data[idx]['mov'])).type(self.inp_dtype)
         segmentation1 = torch.from_numpy(self.label_loader(self.data[idx]['fix_seg'])).type(self.inp_dtype)
@@ -291,14 +289,14 @@ if __name__  == '__main__':
     '''data_file = '/data/groups/beets-tan/l.estacio/lung_data/LungCT/LungCT_dataset.json'
     root_dir  = '/processing/l.estacio/LungCT/'
     data      = Data(data_file, root_dir=root_dir, mode='val')
-    plot_sample_data_and_kpts(data[0], slide=128, save_path='./128_.png')'''
+    plot_sample_data(data[0], slide=164, save_path='./164_.png')'''
     
     # Abdomen
     data_file = '/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/AbdomenCTCT_dataset.json'
     root_dir  = '/processing/l.estacio/AbdomenCTCT/'
-    data      = Data(data_file, root_dir=root_dir, mode='val')
+    data      = Data(data_file, root_dir=root_dir, mode='train')
     print(len(data))
-    plot_sample_data(data[0], slide=128, save_path='./128_.png')
+    plot_sample_data(data[0], slide=164, save_path='./164_abd.png')
     #print(data[0])
 
 # %%
