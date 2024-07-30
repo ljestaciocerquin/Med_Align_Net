@@ -257,7 +257,7 @@ class RawDataAbdomen():
 
 class RawData():  
     def __init__(self, args, **kwargs):    
-        data_type      = 'abdomen' if 'abdomen' in args else 'lung'
+        data_type      = 'Abdomen' if 'Abdomen' in args else 'lung'
         if data_type == 'lung':
             self.raw_data = RawDataLung(args, **kwargs)
         else:
