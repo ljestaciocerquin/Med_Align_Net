@@ -54,19 +54,18 @@ class AligNetAffineStem(nn.Module):
         self.conv6_1 = convolveLeakyReLU(32 * channels, 32 * channels, 3, 1, dim=dim)
 
         # Applying global average pooling to have the same feature map dimensions
-        self.avpool =  averagePooling(output_size=1, dim=dim)
+        self.avpool =  averagePooling(out_channels=1, dim=dim)
         
         # I'm assuming that the image's shape is like (im_size, im_size, im_size) 
         self.last_conv_size = im_size // (self.channels * 4)
         self.fc_loc         = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(18432, 2048),#(512 * self.last_conv_size**dim, 2048),
+            nn.Linear(1024, 1024),#(512 * self.last_conv_size**dim, 2048),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(2048, 1024),
+            nn.Linear(1024, 512),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(1024, 256),
+            nn.Linear(512, 256),
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(256, 6*(dim - 1))
@@ -129,6 +128,7 @@ class AligNetAffineStem(nn.Module):
             flow: the flow field
             theta: dict, with the affine transformation parameters
         """
+        # Fixed Image
         x1   = self.conv1(fixed)    #  16 x 256 x 256       ----- # 16 x 96 x 96 x 104      -----A # 16 x 96 x 80 x 128
         x2   = self.conv2(x1)       #  32 x 128 x 128       ----- # 32 x 48 x 48 x  52      -----A # 32 x 48 x 40 x  64
         x3   = self.conv3(x2)       #  64 x  64 x  64       ----- # 64 x 24 x 24 x  26      -----A # 64 x 24 x 20 x  32
@@ -139,10 +139,26 @@ class AligNetAffineStem(nn.Module):
         x5_1 = self.conv5_1(x5)     # 256 x  16 x  16       ----- #256 x  6 x  6 x   7      -----A #256 x  6 x  5 x   8
         x6   = self.conv6(x5_1)     # 512 x   8 x   8       ----- #512 x  3 x  3 x   4      -----A #512 x  3 x  3 x   4
         x6_1 = self.conv6_1(x6)     # 512 x   8 x   8       ----- #512 x  3 x  3 x   4      -----A #512 x  3 x  3 x   4
-        x7   = self.avpool(x6_1)
+        x7   = self.avpool(x6_1)    # 512 x   1 x   1       ----- #512 x  1 x  1 x   1      -----A #512 x  1 x  1 x   1
+        
+        # Moving Image
+        y1   = self.conv1(moving)   #  16 x 256 x 256       ----- # 16 x 96 x 96 x 104      -----A # 16 x 96 x 80 x 128
+        y2   = self.conv2(y1)       #  32 x 128 x 128       ----- # 32 x 48 x 48 x  52      -----A # 32 x 48 x 40 x  64
+        y3   = self.conv3(y2)       #  64 x  64 x  64       ----- # 64 x 24 x 24 x  26      -----A # 64 x 24 x 20 x  32
+        y3_1 = self.conv3_1(y3)     #  64 x  64 x  64       ----- # 64 x 24 x 24 x  26      -----A # 64 x 24 x 20 x  32
+        y4   = self.conv4(y3_1)     # 128 x  32 x  32       ----- #128 x 12 x 12 x  13      -----A #128 x 12 x 10 x  16
+        y4_1 = self.conv4_1(y4)     # 128 x  32 x  32       ----- #128 x 12 x 12 x  13      -----A #128 x 12 x 10 x  16
+        y5   = self.conv5(y4_1)     # 256 x  16 x  16       ----- #256 x  6 x  6 x   7      -----A #256 x  6 x  5 x   8
+        y5_1 = self.conv5_1(y5)     # 256 x  16 x  16       ----- #256 x  6 x  6 x   7      -----A #256 x  6 x  5 x   8
+        y6   = self.conv6(y5_1)     # 512 x   8 x   8       ----- #512 x  3 x  3 x   4      -----A #512 x  3 x  3 x   4
+        y6_1 = self.conv6_1(y6)     # 512 x   8 x   8       ----- #512 x  3 x  3 x   4      -----A #512 x  3 x  3 x   4
+        y7   = self.avpool(y6_1)    # 512 x   1 x   1       ----- #512 x  1 x  1 x   1      -----A #512 x  1 x  1 x   1
 
+        # Concatenation of fixed and moving
+        xy = torch.cat((x7, y7), dim=1)  # 1024 x   1 x   1       ----- #1024 x  1 x  1 x   1      -----A #1024 x  1 x  1 x   1
+        
         # Affine transformation
-        xs = x6_1.view(-1, 18432)#512 * self.last_conv_size ** self.dim)
+        xs = xy.view(-1, 512*2)#512 * self.last_conv_size ** self.dim)
         if self.dim == 3:
             theta = self.fc_loc(xs).view(-1, 3, 4)
         else:
@@ -154,6 +170,6 @@ class AligNetAffineStem(nn.Module):
 
 if __name__ == "__main__":
     model = AligNetAffineStem(dim=3, im_size=16)
-    x     = torch.randn(1, 1, 512, 512, 512)
+    x     = torch.randn(1, 1, 192, 192, 208)
     af_out= model(x, x)
     # assert  y1.size() == y2.size()
