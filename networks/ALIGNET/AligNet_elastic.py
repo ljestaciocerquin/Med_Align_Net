@@ -150,3 +150,11 @@ class AligNet(nn.Module):
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
 
         return pred0 * 20 * self.flow_multiplier                    # why the 20?
+    
+
+if __name__ == "__main__":
+    model = AligNet(im_size=(192, 192, 208))
+    x   = torch.randn(1, 1, 192, 192, 208)
+    y   = torch.randn(1, 1, 190, 160, 256)
+    out = model(x, x)
+    print('Output shape: ', out.shape)
