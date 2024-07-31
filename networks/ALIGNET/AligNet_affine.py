@@ -171,5 +171,7 @@ class AligNetAffineStem(nn.Module):
 if __name__ == "__main__":
     model = AligNetAffineStem(dim=3, im_size=16)
     x     = torch.randn(1, 1, 192, 192, 208)
-    af_out= model(x, x)
-    # assert  y1.size() == y2.size()
+    y     = torch.randn(1, 1, 190, 160, 256)
+    af_out= model(x, y)
+    print('Aligned Output shape: ', af_out[0].shape)
+    print('Flow shape: ', af_out[1]['theta'].shape)
