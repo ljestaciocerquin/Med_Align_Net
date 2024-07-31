@@ -61,7 +61,7 @@ class AligNet(nn.Module):
         channels (int): The number of channels in the first convolution. The following convolution channels will be [2x, 4x, 8x, 16x] of this value.
         in_channels (int): The number of input channels.
     """
-    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=2, hyper_net=None):
+    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=1, hyper_net=None):
         super(AligNet, self).__init__()
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
