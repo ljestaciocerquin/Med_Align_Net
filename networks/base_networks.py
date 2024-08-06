@@ -10,7 +10,7 @@ from   . import hyper_net as hn
 
 from networks.TSM.TransMorph          import CONFIGS as cfg_tsm,   TransMorph as tsm
 from networks.TSM_A.TransMorph_affine import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
-BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'MAN']
+BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'AN', 'ANF']
 
 def conv(dim=2):
     if dim == 2:
@@ -396,13 +396,15 @@ class VTN(nn.Module):
         deconv5    = self.deconv5(x6_1)                             # 256 x 16 x 16     # 256 x 6 x 6 x 8
         # Funtion to get the same size in dimension 4 
         # in order to be able to concat the tensors. 
-        tensors    = get_same_dim_tensors([x5_1, deconv5, upsamp6to5], x5_1.size(-1), -1)
+        #tensors    = get_same_dim_tensors([x5_1, deconv5, upsamp6to5], x5_1.size(-1), -1) # Uncomment this for lung
+        tensors    = get_same_dim_tensors([x5_1, deconv5, upsamp6to5], x5_1.size(-2), -2)  # Uncomment this for abdomen... improve this part!
         concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 515 x 6 x 6 x 7
 
         pred5      = self.pred5(concat5)                            # 2 x 16 x 16       #   
         upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #   
         deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  
-        tensors    = get_same_dim_tensors([x4_1, deconv4, upsamp5to4], x4_1.size(-1), -1)
+        #tensors    = get_same_dim_tensors([x4_1, deconv4, upsamp5to4], x4_1.size(-1), -1)
+        tensors    = get_same_dim_tensors([x4_1, deconv4, upsamp5to4], x4_1.size(-2), -2)
         concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 
 
         pred4      = self.pred4(concat4)                            # 2 x 32 x 32
@@ -648,3 +650,10 @@ class TSM(nn.Module):
         flow = self.model(x_in)
         flow = self.flow_multiplier*flow
         return flow * self.flow_multiplier
+    
+    
+if __name__ == "__main__":
+    model = VTN(im_size=(192, 192, 208))
+    x   = torch.randn(1, 1, 192, 192, 208)
+    out = model(x, x)
+    print('Output shape: ', out.shape)
