@@ -80,7 +80,9 @@ class AligNet(nn.Module):
         self.conv6   = convolveLeakyReLU(16 * channels, 32 * channels, 3, 2, dim=dim)
         self.conv6_1 = convolveLeakyReLU(32 * channels, 32 * channels, 3, 1, dim=dim)
 
-        self.pred6      = convolve(32 * channels, dim, 3, 1, dim=dim)
+        #self.conv_ls = convolveLeakyReLU(  in_channels*2, 32*channels, 3, 2, dim=dim)
+        
+        self.pred6      = convolve(32 * channels * 2, dim, 3, 1, dim=dim)
         self.upsamp6to5 = upconvolve(dim, dim, 4, 2, dim=dim)
         self.deconv5    = upconvolveLeakyReLU(32 * channels, 16 * channels, 4, 2, dim=dim)
 
@@ -105,8 +107,10 @@ class AligNet(nn.Module):
     
     def forward(self, fixed, moving, return_neg = False, hyp_tensor=None):
         
-        concat_image = torch.cat((fixed, moving), dim=1)    # 2 x 512 x 512         #   2 x 192 x 192 x 208
-        x1   = self.conv1(concat_image)                     # 16 x 256 x 256        #  16 x  96 x  96 x 104
+        #concat_image = torch.cat((fixed, moving), dim=1)    # 2 x 512 x 512         #   2 x 192 x 192 x 208
+        # Fixed image features
+        
+        x1   = self.conv1(fixed)                            # 16 x 256 x 256        #  16 x  96 x  96 x 104
         x2   = self.conv2(x1)                               # 32 x 128 x 128        #  32 x  48 x  48 x  52
         x3   = self.conv3(x2)                               # 64 x 64 x 64          #  64 x  24 x  24 x  26 
         x3_1 = self.conv3_1(x3)                             # 64 x 64 x 64          #  64 x  24 x  24 x  26 
@@ -116,8 +120,24 @@ class AligNet(nn.Module):
         x5_1 = self.conv5_1(x5)                             # 256 x 16 x 16         # 256 x   6 x   6 x   7
         x6   = self.conv6(x5_1)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
         x6_1 = self.conv6_1(x6)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
-
-        pred6      = self.pred6(x6_1)                               # 2 x 8 x 8         #   3 x 3 x 3 x 4
+        
+        # Moving image features
+        y1   = self.conv1(moving)                            # 16 x 256 x 256        #  16 x  96 x  96 x 104
+        y2   = self.conv2(y1)                               # 32 x 128 x 128        #  32 x  48 x  48 x  52
+        y3   = self.conv3(y2)                               # 64 x 64 x 64          #  64 x  24 x  24 x  26 
+        y3_1 = self.conv3_1(y3)                             # 64 x 64 x 64          #  64 x  24 x  24 x  26 
+        y4   = self.conv4(y3_1)                             # 128 x 32 x 32         # 128 x  12 x  12 x  13
+        y4_1 = self.conv4_1(y4)                             # 128 x 32 x 32         # 128 x  12 x  12 x  13
+        y5   = self.conv5(y4_1)                             # 256 x 16 x 16         # 256 x   6 x   6 x   7
+        y5_1 = self.conv5_1(y5)                             # 256 x 16 x 16         # 256 x   6 x   6 x   7
+        y6   = self.conv6(y5_1)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
+        y6_1 = self.conv6_1(y6)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
+        
+        # Concatenation of fixed and moving 
+        xy   = torch.cat((x6_1, y6_1), dim=1)
+        #import pdb; 
+        #pdb.set_trace()
+        pred6      = self.pred6(xy)                               # 2 x 8 x 8         #   3 x 3 x 3 x 4
         upsamp6to5 = self.upsamp6to5(pred6)                         # 2 x 16 x 16       #   3 x 6 x 6 x 8
         deconv5    = self.deconv5(x6_1)                             # 256 x 16 x 16     # 256 x 6 x 6 x 8
         # Funtion to get the same size in dimension 4 
