@@ -8,7 +8,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=30G
-#SBATCH --output=/projects/disentanglement_methods/Med_Align_Net/logs/tsm%j.log   # Standard output and error log
+#SBATCH --output=/projects/disentanglement_methods/Med_Align_Net/logs/tsm_abd_%j.log   # Standard output and error log
 pwd; hostname; date
 
 # Activate conda environment pyenv
@@ -16,6 +16,6 @@ source /home/l.estacio/miniconda3/bin/activate pytorch
 #rsync -avv --info=progress2 --ignore-existing /data/groups/beets-tan/l.estacio/lung_data/LungCT /processing/l.estacio/
 
 # Run your command
-python /projects/disentanglement_methods/Med_Align_Net/train.py
-python /projects/disentanglement_methods/Med_Align_Net/train.py -base VTN
+#python /projects/disentanglement_methods/Med_Align_Net/train.py
+#python /projects/disentanglement_methods/Med_Align_Net/train.py -base VTN
 python /projects/disentanglement_methods/Med_Align_Net/train.py -base TSM
