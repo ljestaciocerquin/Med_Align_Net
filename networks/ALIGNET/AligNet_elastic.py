@@ -29,17 +29,21 @@ def pad_or_truncate(tensor, target_size, dim):
     Pad or truncate a tensor along the specified dimension to the target size.
     """
     current_size = tensor.size(dim)
+    #print(f"Current size: {current_size}, Target size: {target_size}, Dimension: {dim}")
     if current_size > target_size:
         # Truncate the tensor
-        slices = [slice(None)] * tensor.ndimension()
-        slices[dim] = slice(0, target_size)
-        return tensor[tuple(slices)]
+        slices           = [slice(None)] * tensor.ndimension()
+        slices[dim]      = slice(0, target_size)
+        truncated_tensor = tensor[tuple(slices)]
+        #print(f"Truncated tensor shape: {truncated_tensor.shape}")
+        return truncated_tensor
     elif current_size < target_size:
         # Pad the tensor
-        pad_size = [(0, 0)] * tensor.ndimension()
-        pad_size[dim] = (0, target_size - current_size)
-        pad_size = [item for sublist in pad_size for item in sublist]  # Flatten list
-        return torch.nn.functional.pad(tensor, pad_size)
+        pad_size                 = [0] * (2 * tensor.ndimension())
+        pad_size[-(dim * 2 + 1)] = target_size - current_size
+        padded_tensor            = torch.nn.functional.pad(tensor, pad_size)
+        #print(f"Padded tensor shape: {padded_tensor.shape}")
+        return padded_tensor
     else:
         return tensor
 
