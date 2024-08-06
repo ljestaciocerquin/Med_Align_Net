@@ -627,9 +627,9 @@ class TSMAffineStem(nn.Module):
             theta: dict, with the affine transformation parameters
         """
         concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512       # 2 x 192 x 192 x 208 
-        mat = self.model(concat_image)
+        mat   = self.model(concat_image)
         theta = mat
-        flow = self.cr_flow(theta, moving.size())
+        flow  = self.cr_flow(theta, moving.size())
         # theta: the affine param
         return flow, {'theta': theta}
 
