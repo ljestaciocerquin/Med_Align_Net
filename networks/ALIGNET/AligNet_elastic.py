@@ -145,7 +145,7 @@ class AligNet(nn.Module):
         # Funtion to get the same size in dimension 4 
         # in order to be able to concat the tensors. 
         #tensors    = get_same_dim_tensors([x5_1, y5_1, deconv5, upsamp6to5], x5_1.size(-1), -1)
-        tensors    = get_same_dim_tensors([x5_1, y5_1, deconv5, upsamp6to5], x5_1.size(-2), -2)
+        tensors    = get_same_dim_tensors([x5_1, y5_1, deconv5, upsamp6to5], y5_1.size(-2), -2)
         concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 771 x 6 x 6 x 7
 
         
@@ -153,7 +153,7 @@ class AligNet(nn.Module):
         upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #  3 x 12 x 12 x 14
         deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  128 x 12 x 12 x 14
         #tensors    = get_same_dim_tensors([x4_1, y4_1, deconv4, upsamp5to4], x4_1.size(-1), -1)
-        tensors    = get_same_dim_tensors([x4_1, y4_1, deconv4, upsamp5to4], x4_1.size(-2), -2)
+        tensors    = get_same_dim_tensors([x4_1, y4_1, deconv4, upsamp5to4], y4_1.size(-2), -2)
         concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 387 x 12 x 12 x 13
 
         pred4      = self.pred4(concat4)                            # 2 x 32 x 32       # 3 x 12 x 12 x 13
