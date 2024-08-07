@@ -59,13 +59,14 @@ class AligNetAffineStem(nn.Module):
         # I'm assuming that the image's shape is like (im_size, im_size, im_size) 
         self.last_conv_size = im_size // (self.channels * 4)
         self.fc_loc         = nn.Sequential(
-            nn.Linear(1024, 1024),#(512 * self.last_conv_size**dim, 2048),
+            nn.Linear(1024, 1024), #(512 * self.last_conv_size**dim, 2048), while applying avp
+            #nn.Linear(18432, 2048),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(1024, 512),
+            nn.Linear(1024, 512), #nn.Linear(2048, 1024), #
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(512, 256),
+            nn.Linear(512, 256), # nn.Linear(1024, 256), #
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(256, 6*(dim - 1))
@@ -158,7 +159,8 @@ class AligNetAffineStem(nn.Module):
         xy = torch.cat((x7, y7), dim=1)  # 1024 x   1 x   1       ----- #1024 x  1 x  1 x   1      -----A #1024 x  1 x  1 x   1
         
         # Affine transformation
-        xs = xy.view(-1, 512*2)#512 * self.last_conv_size ** self.dim)
+        xs = xy.view(-1, 512*2)  #512 * self.last_conv_size ** self.dim) # When applying avp
+        #xs = xy.view(-1, 18432) #512 * self.last_conv_size ** self.dim)
         if self.dim == 3:
             theta = self.fc_loc(xs).view(-1, 3, 4)
         else:
@@ -173,5 +175,6 @@ if __name__ == "__main__":
     x     = torch.randn(1, 1, 192, 192, 208)
     y     = torch.randn(1, 1, 190, 160, 256)
     af_out= model(x, y)
+    print('len output: ', len(af_out))
     print('Aligned Output shape: ', af_out[0].shape)
     print('Flow shape: ', af_out[1]['theta'].shape)
