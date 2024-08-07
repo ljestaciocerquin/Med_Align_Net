@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from   torch.nn import ReLU, LeakyReLU
+from   torch.nn import LeakyReLU
 
 def conv(dim=2):
     if dim == 2:
