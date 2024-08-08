@@ -704,8 +704,8 @@ class ALN(nn.Module):
     
 if __name__ == "__main__":
     model = ALN()
-    x     = torch.randn(1, 1, 192, 192, 208)
-    t = t   = torch.randn(1, 3, 4)
-    out   = model(x, x, t)
+    x   = torch.randn(1, 1, 192, 192, 208)
+    t   = torch.randn(1, 3, 4)
+    out = model(x, x, t)
     print('Output shape: ', out[0].shape)
     print('Output shape: ', out[1]['theta'].shape)
