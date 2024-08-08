@@ -79,11 +79,12 @@ class SpatialTransformer(nn.Module):
         
         # create sampling grid
         size    = src.shape[2:]
-        vectors = [torch.arange(0, s) for s in size]
+        device  = src.device
+        vectors = [torch.arange(0, s, device=device) for s in size]
         grids   = torch.meshgrid(vectors, indexing='ij')
         grid    = torch.stack(grids)
         grid    = torch.unsqueeze(grid, 0)
-        grid    = grid.type(torch.FloatTensor)
+        grid    = grid.type(torch.FloatTensor).to(device)
         #self.register_buffer('grid', grid, persistent=False)
         
         # new locations
