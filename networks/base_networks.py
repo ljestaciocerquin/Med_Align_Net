@@ -8,9 +8,12 @@ from   . import layers
 from   . import hyper_net as hn
 
 
-from networks.TSM.TransMorph          import CONFIGS as cfg_tsm,   TransMorph as tsm
-from networks.TSM_A.TransMorph_affine import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
-BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'AN', 'ANF']
+from networks.TSM.TransMorph                import CONFIGS as cfg_tsm,   TransMorph as tsm
+from networks.TSM_A.TransMorph_affine       import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
+from networks.ALIGNET.AligNet_affine        import AligNetAffineStem
+from networks.ALIGNET.AligNet_elastic_fm    import AligNet
+
+BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'ALN']
 
 def conv(dim=2):
     if dim == 2:
@@ -651,9 +654,58 @@ class TSM(nn.Module):
         flow = self.flow_multiplier*flow
         return flow * self.flow_multiplier
     
+
+class ALNAffineStem(nn.Module):
+    def __init__(self, dim=1, channels=16, flow_multiplier=1., im_size=512, in_channels=2):
+        super(ALNAffineStem, self).__init__()
+        self.flow_multiplier = flow_multiplier
+        self.channels        = channels
+        self.dim             = dim
+        self.model           = AligNetAffineStem(dim=self.dim)
+        
+    def forward(self, fixed, moving):
+        """
+        Calculate the affine transformation parameters
+
+        Returns:
+            flow: the flow field
+            theta: dict, with the affine transformation parameters
+        """
+        
+        output = self.model(fixed, moving)
+        theta  = output[1]['theta']
+        flow   = output[0]
+        # theta: the affine param
+        return flow, {'theta': theta}
+
+
+
+class ALN(nn.Module):
+    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=2, hyper_net=None):
+        super(ALN, self).__init__()
+        self.flow_multiplier = flow_multiplier
+        self.channels        = channels
+        self.dim = dim       = len(im_size)
+        self.model           = AligNet()
+        
+    def forward(self, fixed, moving, theta, return_neg = False, hyp_tensor=None):
+        """
+        Calculate the affine transformation parameters
+
+        Returns:
+            flow: the flow field
+            theta: dict, with the affine transformation parameters
+        """
+        
+        flow = self.model(fixed, moving, theta)
+        return flow
+    
+    
     
 if __name__ == "__main__":
-    model = VTN(im_size=(192, 192, 208))
-    x   = torch.randn(1, 1, 192, 192, 208)
-    out = model(x, x)
-    print('Output shape: ', out.shape)
+    model = ALN()
+    x     = torch.randn(1, 1, 192, 192, 208)
+    t = t   = torch.randn(1, 3, 4)
+    out   = model(x, x, t)
+    print('Output shape: ', out[0].shape)
+    print('Output shape: ', out[1]['theta'].shape)

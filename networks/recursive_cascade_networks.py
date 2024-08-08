@@ -28,16 +28,22 @@ class RecursiveCascadeNetwork(nn.Module):
         self.in_channels  = in_channels
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        affine_stem_classes = {
+            'TSM': TSMAffineStem,
+            'ALN': ALNAffineStem,
+        }
+
+
 
         if hyper_net:
             self.hypernet = HyperModel(nb_hyp_params=1, nb_hyp_layers=6, nb_hyp_units=128)
         self.stems = nn.ModuleList()
         # See note in base_networks.py about the assumption in the image shape
         if use_affine:
-            if base_network != 'TSM':
-                self.stems.append(VTNAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
-            else:
-                self.stems.append(TSMAffineStem(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
+            StemClass = affine_stem_classes.get(base_network, VTNAffineStem)
+            self.stems.append(StemClass(dim=len(im_size), im_size=im_size[0], in_channels=in_channels))
+
         assert base_network in BASE_NETWORK
         base = eval(base_network)
         for i in range(n_cascades):
@@ -145,9 +151,15 @@ class RecursiveCascadeNetwork(nn.Module):
             flows.append(flow)
         if return_neg:
             neg_flow = self.stems[0].neg_flow(affine_params['theta'], moving.size())
+        if self.base_network == 'ALN':
+            theta_ALN =  affine_params['theta']
+            
         for model in self.stems[1:]: # cascades
             # registration between the fixed and the warped from last cascade
-            flow = model(fixed, stem_results[-1], return_neg=return_neg)
+            if self.base_network == 'ALN':
+                flow = model(fixed, stem_results[-1], theta_ALN, return_neg=return_neg)
+            else:
+                flow = model(fixed, stem_results[-1], return_neg=return_neg)
             if return_neg:
                 neg_fl = flow[1]
                 ## reverse flow cannot utilize the affine params
