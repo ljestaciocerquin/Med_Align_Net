@@ -32,7 +32,8 @@ class Total_Segmentator(object):
             for scan in data:
                 
                 try:        
-                    seg_name  = output_folder + scan.split('/')[-1]
+                    seg_name  = output_folder + scan.split('/')[-1].replace('.nii.gz', '')
+                    #print(seg_name)
                     ts_cmd = f"TotalSegmentator -i {scan} -o {seg_name} --roi_subset liver --statistics"
                     os.system(ts_cmd)
                 except:
