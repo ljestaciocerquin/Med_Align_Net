@@ -59,14 +59,14 @@ class AligNetAffineStem(nn.Module):
         # I'm assuming that the image's shape is like (im_size, im_size, im_size) 
         self.last_conv_size = im_size // (self.channels * 4)
         self.fc_loc         = nn.Sequential(
-            #nn.Linear(1024, 1024), #(512 * self.last_conv_size**dim, 2048), while applying avp
-            nn.Linear(36864, 2048),
+            nn.Linear(1024, 1024), #(512 * self.last_conv_size**dim, 2048), while applying avp
+            #nn.Linear(36864, 2048),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(2048, 1024), #nn.Linear(1024, 512), #
+            nn.Linear(1024, 512), #nn.Linear(2048, 1024), #
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(1024, 256), #nn.Linear(512, 256), # 
+            nn.Linear(512, 256), # nn.Linear(1024, 256), #
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(256, 6*(dim - 1))
@@ -157,11 +157,12 @@ class AligNetAffineStem(nn.Module):
 
         # Concatenation of fixed and moving
         #tensors    = get_same_dim_tensors([x6_1, y6_1],y6_1.size(-1), -1) # Uncomment if needed!
-        xy = torch.cat((x6_1, y6_1), dim=1)  # 1024 x   1 x   1       ----- #1024 x  1 x  1 x   1      -----A #1024 x  1 x  1 x   1
+        #xy = torch.cat((x6_1, y6_1), dim=1)  
+        xy = torch.cat((x7, y7), dim=1)  # 1024 x   1 x   1       ----- #1024 x  1 x  1 x   1      -----A #1024 x  1 x  1 x   1
         
         # Affine transformation
-        #xs = xy.view(-1, 512*2)  #512 * self.last_conv_size ** self.dim) # When applying avp
-        xs = xy.view(1, 36864) #512 * self.last_conv_size ** self.dim)
+        xs = xy.view(-1, 512*2)  #512 * self.last_conv_size ** self.dim) # When applying avp
+        #xs = xy.view(1, 36864) #512 * self.last_conv_size ** self.dim)
         if self.dim == 3:
             theta = self.fc_loc(xs).view(-1, 3, 4)
         else:
