@@ -148,7 +148,7 @@ class RawDataAbdomen():
         self.inp_dtype = torch.float32
         self.scan_loader  = self.__init_scan_loader()
         self.label_loader = self.__init_label_loader()
-        
+        random.seed(2023)
         # We didn't consider registration_val since they are the three first elements of the training dataset
         # This 3 elements have landmarks information
         mode_mapping = {
