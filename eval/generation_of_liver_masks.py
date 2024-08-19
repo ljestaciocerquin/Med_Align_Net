@@ -45,8 +45,8 @@ class Total_Segmentator(object):
 
 if __name__ == "__main__":
     totseg = Total_Segmentator()
-    input_folder  = '/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/imagesTs/'
-    output_folder = '/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/labelsTs/'
+    input_folder  = '/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/images_ts/'
+    output_folder = '/data/groups/beets-tan/l.estacio/abdomen_data/AbdomenCTCT/labels_ts/'
     
     totseg.make_folder_to_save(output_folder)
     
