@@ -28,19 +28,20 @@ from tools.visualization import *
 from metrics.losses import compute_initial_deformed_TRE
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_104.pth', help='Specifies a previous checkpoint to load')
+parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/Abdomen/VXM/train/Jul31-053533_Abtrain_VXMx1___/model_wts/epoch_100.pth')#'/projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_104.pth', help='Specifies a previous checkpoint to load')
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
-parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
-parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json')#'/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
+parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/AbdomenCTCT/')#'/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
 parser.add_argument('-ndir', '--nii_dir',    type=str, default='/data/groups/beets-tan/l.estacio/Med_Align_Net/', help='Directory where .nii.gz wil be stored')
 parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Specifies the task to perform: train|val|test')
+parser.add_argument('-is', '--img_size',   type=list, default=[192, 160, 256], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
 parser.add_argument('-vs', '--voxel_spacing', type=list, default=[1.75, 1.25, 1.75], help='specifies the target voxel spacing that the flow should have to compute the TRE')
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
 parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the results as a pkl file')
 parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
 parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dice for each region')
 parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
-parser.add_argument('-tre', '--tre_dist',   default=True, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate TRE dist using keypoints')
+parser.add_argument('-tre', '--tre_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate TRE dist using keypoints')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
 parser.add_argument('-ue','--use_elastix',   action='store_true', help='if use elastix to register')
 parser.add_argument('-en', '--exp_name',    type=str, default='', help='Name of the file that contains the results. Use it for ants and elastix.')
@@ -75,7 +76,7 @@ def main(args):
     # read config
     with open(args.dataset, 'r') as f:
         cfg = json.load(f)
-        image_size = cfg.get('image_size', [192, 192, 208])
+        image_size = cfg.get('image_size', args.img_size)
         image_type = cfg.get('image_type', None)
         segmentation_class_value=cfg.get('segmentation_class_value', {'unknown':1})
         
@@ -99,7 +100,7 @@ def main(args):
     import re
     # "([^\/]*_\d{6}_[^\/]*)"gm
     exp_name = re.search(r"([^\/]*-\d{6}_[^\/]*)", model_path).group(1) if not args.use_ants and not args.use_elastix else args.exp_name
-    exp_name += 'ours' # In case an additional name is given 
+    #exp_name += '20' # In case an additional name is given 
     print('Experiment Name: ', exp_name)
     output_fname = './eval/results/{}_{}.txt'.format(args.task_mode, exp_name)
     print('output_fname: ', output_fname)
@@ -116,7 +117,8 @@ def main(args):
     # stage 1 model setup
     if cfg_training.masked in ['soft', 'hard']:
         # suppose the training dataset has the same data type of eval dataset
-        data_type = 'liver' if 'liver' in cfg_training.dataset else 'lung'
+        data_type      = 'Abdomen' if 'Abdomen' in cfg_training.dataset else 'lung'
+        #data_type = 'liver' if 'liver' in cfg_training.dataset else 'lung'
         cfg_training.data_type = data_type
         build_precompute(model, val_dataset, cfg_training)
 
@@ -154,7 +156,8 @@ def main(args):
 
         fixed, moving = data['voxel1'], data['voxel2']
         id1, id2      = data['img1_path'], data['img2_path']
-        kp1, kp2      = data['kps1'], data['kps2']
+        if args.tre_dist:
+            kp1, kp2      = data['kps1'], data['kps2']
         
         if args.use_ants:
             pred                      = ants_pred(fixed, moving, seg2)
@@ -176,8 +179,9 @@ def main(args):
                 fixed  = fixed.cuda()
                 moving = moving.cuda()
                 seg2 = seg2.cuda()
-                kp1  = kp1.cuda()
-                kp2  = kp2.cuda()
+                if args.tre_dist:
+                    kp1  = kp1.cuda()
+                    kp2  = kp2.cuda()
                 if cfg_training.masked  in ['soft' , 'hard']:
                     input_seg, compute_mask = model.pre_register(fixed, moving, seg2, training=False, cfg=cfg_training)
                     moving_                 = torch.cat([moving, input_seg.float().cuda()], dim=1)
