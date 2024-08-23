@@ -198,8 +198,8 @@ class RawDataAbdomen():
         for entry in data:
             fixed_image  = entry['fixed']
             moving_image = entry['moving']
-            fixed_mask   = fixed_image.replace('imagesTr', 'labelsTr')
-            moving_mask  = moving_image.replace('imagesTr', 'labelsTr')
+            fixed_mask   = fixed_image.replace('imagesTs', 'labelsTs')
+            moving_mask  = moving_image.replace('imagesTs', 'labelsTs')
             
             pair = {
                 'fix': fixed_image,
@@ -243,6 +243,11 @@ class RawDataAbdomen():
         voxel2        = torch.from_numpy(self.scan_loader(self.data[idx]['mov'])).type(self.inp_dtype)
         segmentation1 = torch.from_numpy(self.label_loader(self.data[idx]['fix_seg'])).type(self.inp_dtype)
         segmentation2 = torch.from_numpy(self.label_loader(self.data[idx]['mov_seg'])).type(self.inp_dtype)
+        
+        print('fix: ', self.data[idx]['fix'])
+        print('mov: ', self.data[idx]['mov'])
+        print('fix seg: ', self.data[idx]['fix_seg'])
+        print('mov seg: ', self.data[idx]['mov_seg'])
         
         ret['img1_path']     = self.data[idx]['fix']
         ret['img2_path']     = self.data[idx]['mov']
