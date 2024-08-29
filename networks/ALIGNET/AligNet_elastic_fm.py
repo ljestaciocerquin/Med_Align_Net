@@ -264,9 +264,9 @@ class AligNet(nn.Module):
         concat1    = torch.cat([f1, m1_a, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256    # 51 x 96 x 96 x 104
 
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
-
-        #return pred0 * 20 * self.flow_multiplier                    # why the 20?
-        return pred0 * self.flow_multiplier                    # why the 20?
+        #import pdb; pdb.set_trace()
+        return pred0 * 20 * self.flow_multiplier                    # why the 20?
+        #return pred0 * self.flow_multiplier                    # why the 20?
     
 
 if __name__ == "__main__":
