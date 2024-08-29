@@ -425,7 +425,7 @@ class VTN(nn.Module):
         upsamp2to1 = self.upsamp2to1(pred2)                         # 2 x 256 x 256
         deconv1    = self.deconv1(concat2)                          # 16 x 256 x 256
         concat1    = torch.cat([x1, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
         return pred0 * 20 * self.flow_multiplier                    # why the 20?
         
