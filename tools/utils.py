@@ -84,7 +84,10 @@ def convert_nda_to_itk(nda: np.ndarray, itk_image: sitk.Image):
     Returns:
         new_itk_image (sitk.Image): New Image object
     """
-    new_itk_image = sitk.GetImageFromArray(np.moveaxis(nda, -1, 0))
+    #import pdb; pdb.set_trace()
+    #new_itk_image = sitk.GetImageFromArray(np.moveaxis(nda, -1, 0)) # Why doesn't it work for the abdominal dataset?
+    nda           = np.moveaxis(nda, [0, 1, 2], [2, 1, 0])
+    new_itk_image = sitk.GetImageFromArray(nda) # Abdomen?
     new_itk_image.SetOrigin(itk_image.GetOrigin())
     new_itk_image.SetSpacing(itk_image.GetSpacing())
     new_itk_image.CopyInformation(itk_image)
@@ -143,7 +146,7 @@ def resample_image_to_spacing(image, original_spacing, new_spacing):
     Returns:
         resampled_image (numpy.ndarray): Resampled image.
     """
-    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    resize_factors  = np.array(original_spacing) / np.array(new_spacing)
     resampled_image = scipy.ndimage.zoom(image, resize_factors, order=1)
     return resampled_image
 
@@ -161,7 +164,7 @@ def resample_flow_considering_img_to_spacing(flow, original_spacing, new_spacing
     Returns:
         resampled_deformation_field (numpy.ndarray): Resampled deformation field.
     """
-    resize_factors = np.array(original_spacing) / np.array(new_spacing)
+    resize_factors              = np.array(original_spacing) / np.array(new_spacing)
     resampled_deformation_field = np.zeros((3, *resampled_image_size))
     for i in range(3):
         resampled_deformation_field[i] = scipy.ndimage.zoom(flow[i], resize_factors, order=1)
@@ -185,7 +188,7 @@ def resample_flow_to_spacing(deformation_field, original_spacing, new_spacing):
     """
     resize_factors = np.array(original_spacing) / np.array(new_spacing)
     original_shape = deformation_field.shape[1:]  # Get the original shape (D, H, W)
-    new_shape = np.round(np.array(original_shape) * resize_factors).astype(int)  # Calculate new shape
+    new_shape      = np.round(np.array(original_shape) * resize_factors).astype(int)  # Calculate new shape
     resampled_deformation_field = np.zeros((3, *new_shape))
     for i in range(3):
         resampled_deformation_field[i] = scipy.ndimage.zoom(deformation_field[i], resize_factors, order=1)
