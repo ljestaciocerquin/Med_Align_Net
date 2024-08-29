@@ -148,7 +148,7 @@ class RawDataAbdomen():
         self.inp_dtype = torch.float32
         self.scan_loader  = self.__init_scan_loader()
         self.label_loader = self.__init_label_loader()
-        random.seed(2023)
+        #random.seed(2023)
         # We didn't consider registration_val since they are the three first elements of the training dataset
         # This 3 elements have landmarks information
         mode_mapping = {
@@ -243,11 +243,6 @@ class RawDataAbdomen():
         voxel2        = torch.from_numpy(self.scan_loader(self.data[idx]['mov'])).type(self.inp_dtype)
         segmentation1 = torch.from_numpy(self.label_loader(self.data[idx]['fix_seg'])).type(self.inp_dtype)
         segmentation2 = torch.from_numpy(self.label_loader(self.data[idx]['mov_seg'])).type(self.inp_dtype)
-        
-        print('fix: ', self.data[idx]['fix'])
-        print('mov: ', self.data[idx]['mov'])
-        print('fix seg: ', self.data[idx]['fix_seg'])
-        print('mov seg: ', self.data[idx]['mov_seg'])
         
         ret['img1_path']     = self.data[idx]['fix']
         ret['img2_path']     = self.data[idx]['mov']
