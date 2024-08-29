@@ -425,9 +425,8 @@ class VTN(nn.Module):
         upsamp2to1 = self.upsamp2to1(pred2)                         # 2 x 256 x 256
         deconv1    = self.deconv1(concat2)                          # 16 x 256 x 256
         concat1    = torch.cat([x1, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256
-
+        import pdb; pdb.set_trace()
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
-
         return pred0 * 20 * self.flow_multiplier                    # why the 20?
         
 
@@ -681,13 +680,13 @@ class ALNAffineStem(nn.Module):
 
 
 class ALN(nn.Module):
-    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=2, hyper_net=None):
+    def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=1, hyper_net=None):
         super(ALN, self).__init__()
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
         self.dim = dim       = len(im_size)
-        self.model           = AligNet()
-        
+        self.model           = AligNet(flow_multiplier=self.flow_multiplier)
+                
     def forward(self, fixed, moving, theta, return_neg = False, hyp_tensor=None):
         """
         Calculate the affine transformation parameters
