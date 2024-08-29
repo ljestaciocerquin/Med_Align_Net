@@ -455,6 +455,7 @@ def plot_jac_det(image, flow, path_to_save):
 
 
 def save_outputs_as_nii_format(out, path_to_save='./output/'):
+    
     itk_img1 = sitk.ReadImage(out['img1_p'])
     itk_img2 = sitk.ReadImage(out['img2_p'])
     img1  = np.squeeze(convert_tensor_to_numpy(out['img1']), axis=(0,1))
@@ -466,34 +467,42 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
     
+    # Deformation field in mm
+    pixel_spacing =  np.array([2, 2, 2]) # Abdomen
+    flow3_mm      = flow3 * pixel_spacing[:, np.newaxis, np.newaxis, np.newaxis]
+    flow_mm       = np.linalg.norm(flow3_mm, axis=0)
     
-    # Resampling deformation field and fixed images to visualize them with the right voxel/pixel spacing
+    '''# Resampling deformation field and fixed images to visualize them with the right voxel/pixel spacing
     original_spacing = [1, 1, 1]
-    new_spacing      = [1.75, 1.25, 1.75]
+    #new_spacing     = [1.75, 1.25, 1.75] # Lung
+    new_spacing      = [2, 2, 2]
     #img1_resampled, flow3_resampled = resample_to_spacing(img1, flow3, original_spacing, new_spacing)
     img1_resampled   = resample_image_to_spacing(img1, original_spacing, new_spacing)
-    flow3_resampled  = resample_flow_considering_img_to_spacing(flow3, original_spacing, new_spacing, img1_resampled.shape)
-    #norm_flow3       = normalize_flow(flow3_resampled)
+    flow3_resampled  = resample_flow_considering_img_to_spacing(flow3_mm, original_spacing, new_spacing, img1_resampled.shape)
+
     
     # Saving slices of the deformation field (grid, arrows) and the Jacobian determinant
-    save_heatmap_flow(np.linalg.norm(flow3_resampled, axis=0), path_to_save)
-    plot_flow_with_grid(img1_resampled, flow3_resampled, path_to_save)
-    plot_jac_det(img1_resampled, flow3_resampled, path_to_save)
+    save_heatmap_flow(np.linalg.norm(flow3_mm, axis=0), path_to_save) #flow3_resampled
     #import pdb; pdb.set_trace()
+    plot_flow_with_grid(img1, flow3_mm, path_to_save) #flow3_resampled
+    plot_jac_det(img1, flow3_mm, path_to_save) #flow3_resampled
+    #import pdb; pdb.set_trace()'''
     
     #import pdb; pdb.set_trace()
-    jdet  = get_jacobian_det(flow3)
+    jdet     = get_jacobian_det(flow3)
+    jdet_mm  = get_jacobian_det(flow3_mm)
     ##plot_deformation_field_with_grid_and_jacobian(flow3, jdet, path_to_save)
-    
-    img1  = convert_nda_to_itk(img1, itk_img1)
-    img2  = convert_nda_to_itk(img2, itk_img2)   
-    seg1  = convert_nda_to_itk(seg1, itk_img1)
-    seg2  = convert_nda_to_itk(seg2, itk_img2)  
+    #import pdb; pdb.set_trace()
+    img1  = convert_nda_to_itk(img1,  itk_img1)
+    img2  = convert_nda_to_itk(img2,  itk_img2)   
+    seg1  = convert_nda_to_itk(seg1,  itk_img1)
+    seg2  = convert_nda_to_itk(seg2,  itk_img2)  
     w_img = convert_nda_to_itk(w_img, itk_img1) 
     w_seg = convert_nda_to_itk(w_seg, itk_img1)  
-    flow  = convert_nda_to_itk(flow, itk_img1)
-    jdet  = convert_nda_to_itk(jdet, itk_img1) 
-    #import pdb; pdb.set_trace()
+    flow  = convert_nda_to_itk(flow,  itk_img1)
+    jdet  = convert_nda_to_itk(jdet,  itk_img1) 
+    flow_mm  = convert_nda_to_itk(flow_mm,  itk_img1) 
+    jdet_mm  = convert_nda_to_itk(jdet_mm,  itk_img1) 
       
     
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
@@ -503,4 +512,8 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     sitk.WriteImage(w_img, path_to_save + 'w_img.nii.gz')
     sitk.WriteImage(w_seg, path_to_save + 'w_seg.nii.gz')
     sitk.WriteImage(flow, path_to_save + 'flow.nii.gz')
+    sitk.WriteImage(flow_mm, path_to_save + 'flow_mm.nii.gz')
     sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
+    sitk.WriteImage(jdet_mm, path_to_save + 'jdet_mm.nii.gz')
+    sitk.WriteImage(jdet_mm, path_to_save + 'jdet_mm.nii.gz')
+    #import pdb; pdb.set_trace()
