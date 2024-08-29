@@ -53,7 +53,7 @@ parser.add_argument('-tm', '--task_mode',  type=str, default='train', help='Spec
 parser.add_argument('-ic', '--in_channel', type=int, default=2,  help='Input channel number')
 parser.add_argument('-g', '--gpu',         type=str, default='', help='GPU to use')
 parser.add_argument('--name',              type=str, default='')
-parser.add_argument('-is', '--img_size',   type=list, default=[192, 192, 208], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
+parser.add_argument('-is', '--img_size',   type=list, default=[192, 160, 256], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
 
 # Regular loss settings
 parser.add_argument('--ortho', type=float, default=0.1, help="use ortho loss")
@@ -88,7 +88,8 @@ parser.add_argument('-hpv', '--hyper_vp', action='store_true', help="whether to 
 # Default settings based on other arguments
 parser.set_defaults(in_channel=3 if parser.parse_args().masked else 2)
 parser.set_defaults(in_channel=1 if parser.parse_args().base_network == 'ALN' else 2)
-parser.set_defaults(n_cascades=1 if parser.parse_args().base_network != 'VTN' else 3)
+parser.set_defaults(n_cascades=1 if parser.parse_args().base_network != 'ALN' else 3)
+#parser.set_defaults(n_cascades=1 if parser.parse_args().base_network != 'VTN' else 3)
 parser.set_defaults(use_affine=0 if parser.parse_args().base_network == 'DMR' else 1)
 
 
