@@ -1,10 +1,11 @@
 import os
 import torch
 import numpy as np
+import nibabel as nib
 import SimpleITK as sitk
 import matplotlib.pyplot as plt
 from   tools.utils import convert_tensor_to_numpy
-from   tools.utils import convert_nda_to_itk
+from   tools.utils import convert_nda_to_itk, convert_nflow_to_itk
 from torchvision.utils import make_grid, save_image, draw_segmentation_masks
 from tools.utils import resample_flow_to_spacing
 from tools.utils import resample_image_to_spacing
@@ -230,10 +231,11 @@ def compute_jacobian_determinant(flow, i, j, k):
     dw_dy = (flow[2, i, j+1, k] - flow[2, i, j-1, k]) / 2
     dw_dz = (flow[2, i, j, k+1] - flow[2, i, j, k-1]) / 2
 
+    # Jdet + I
     jacobian_matrix = np.array([
-        [du_dx, du_dy, du_dz],
-        [dv_dx, dv_dy, dv_dz],
-        [dw_dx, dw_dy, dw_dz]
+        [du_dx + 1, du_dy, du_dz],
+        [dv_dx, dv_dy + 1, dv_dz],
+        [dw_dx, dw_dy, dw_dz + 1]
     ])
     
     return np.linalg.det(jacobian_matrix)
@@ -244,7 +246,6 @@ def get_jacobian_det(flow):
     flow: 3 x 192 x 192 x 208
     '''
     shape = flow.shape
-    import pdb; pdb.set_trace
     jacob_det = np.zeros(shape[1:])
     
     for i in range(1, shape[1] - 1):
@@ -463,7 +464,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     seg1  = np.squeeze(convert_tensor_to_numpy(out['seg1']), axis=(0,1))  
     seg2  = np.squeeze(convert_tensor_to_numpy(out['seg2']), axis=(0,1))  
     w_img = np.squeeze(convert_tensor_to_numpy(out['warped']), axis=(0,1)) 
-    w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1))  
+    w_seg = np.squeeze(convert_tensor_to_numpy(out['wseg2']), axis=(0,1)) 
     flow3 = np.squeeze(convert_tensor_to_numpy(out['flow']), axis=(0))  # 3 x 192 x 192 x 208
     flow  = np.linalg.norm(flow3, axis=0) # 192 x 192 x 208
     
@@ -503,6 +504,7 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     jdet  = convert_nda_to_itk(jdet,  itk_img1) 
     flow_mm  = convert_nda_to_itk(flow_mm,  itk_img1) 
     jdet_mm  = convert_nda_to_itk(jdet_mm,  itk_img1) 
+    flow_4d  = convert_nflow_to_itk(flow3)
       
     
     sitk.WriteImage(img1, path_to_save + 'img1.nii.gz')
@@ -515,5 +517,5 @@ def save_outputs_as_nii_format(out, path_to_save='./output/'):
     sitk.WriteImage(flow_mm, path_to_save + 'flow_mm.nii.gz')
     sitk.WriteImage(jdet, path_to_save + 'jdet.nii.gz')
     sitk.WriteImage(jdet_mm, path_to_save + 'jdet_mm.nii.gz')
-    sitk.WriteImage(jdet_mm, path_to_save + 'jdet_mm.nii.gz')
+    nib.save(flow_4d, path_to_save + 'flow_4d.nii.gz')
     #import pdb; pdb.set_trace()
