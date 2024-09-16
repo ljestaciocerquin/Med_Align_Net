@@ -93,6 +93,25 @@ def convert_nda_to_itk(nda: np.ndarray, itk_image: sitk.Image):
     new_itk_image.CopyInformation(itk_image)
     return new_itk_image
 
+import nibabel as nib
+def convert_nflow_to_itk(deformation_field: np.ndarray):
+    """From a numpy array, get an itk image object, copying information
+    from an existing one. It switches the z-axis from last to first position.
+
+    Args:
+        nda (np.ndarray): 4D image array
+        itk_image (sitk.Image): Image object to copy info from
+
+    Returns:
+        new_itk_image (sitk.Image): New Image object
+    """
+    #import pdb; pdb.set_trace()
+    deformation_field = np.transpose(deformation_field, (1, 2, 3, 0))
+
+    # Create a NIfTI image
+    nifti_img = nib.Nifti1Image(deformation_field, affine=np.eye(4))
+    return nifti_img
+
 def convert_itk_to_nda(itk_image: sitk.Image):
     """From an itk Image object, get a numpy array. It moves the first z-axis
     to the last position (np.ndarray convention).
