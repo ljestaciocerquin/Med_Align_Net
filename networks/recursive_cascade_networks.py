@@ -31,7 +31,7 @@ class RecursiveCascadeNetwork(nn.Module):
         
         affine_stem_classes = {
             'TSM': TSMAffineStem,
-            'ALN': ALNAffineStem,
+            'CLM': CLMAffineStem,
         }
 
 
@@ -150,14 +150,12 @@ class RecursiveCascadeNetwork(nn.Module):
             flows.append(flow)
         if return_neg:
             neg_flow = self.stems[0].neg_flow(affine_params['theta'], moving.size())
-        #if self.base_network == 'ALN':
-        #    theta_ALN =  affine_params['theta']
-            
+                    
         for model in self.stems[1:]: # cascades
             # registration between the fixed and the warped from last cascade
-            if self.base_network == 'ALN':
-                theta_ALN =  affine_params['theta']
-                flow = model(fixed, stem_results[-1], theta_ALN, return_neg=return_neg)
+            if self.base_network == 'CLM':
+                theta_CLM =  affine_params['theta']
+                flow = model(fixed, stem_results[-1], theta_CLM, return_neg=return_neg)
             else:
                 flow = model(fixed, stem_results[-1], return_neg=return_neg)
             if return_neg:
