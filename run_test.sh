@@ -33,26 +33,11 @@ source /home/l.estacio/miniconda3/bin/activate pytorch
 #python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/TSM/train/Sep19-141338_Abtrain_TSMx1___reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ #-sn
 #python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/TSM/train/Sep20-064524_Abtrain_TSMx1___reg10.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
 
-# ALN
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep18-215311_Abtrain_ALNx1_1xflow__reg0.1/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep19-131330_Abtrain_ALNx1_1xflow__reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep20-051025_Abtrain_ALNx1_1xflow__reg10.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
+# CLM
+#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/CLM/train/Sep18-215311_Abtrain_CLMx1_1xflow__reg0.1/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
+#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/CLM/train/Sep19-131330_Abtrain_CLMx1_1xflow__reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
+#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/CLM/train/Sep20-051025_Abtrain_CLMx1_1xflow__reg10.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
 
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep22-172410_Abtrain_ALNx1_20xflow__reg0.1/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep23-151805_Abtrain_ALNx1_20xflow__reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep24-132646_Abtrain_ALNx1_20xflow__reg10.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-
-# ALN Attention
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Oct07-182843_Abtrain_ALNx1_1xflowxAtt__reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-
-# Dual Encoder affine and elastic:
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep30-194807_Abtrain_ALNx1_1xflowxAvpAff__reg1.0/model_wts/epoch_100.pth  -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ #-sn
-
-#
-python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -ua -en ants_Abd -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/VXM/train/Sep16-203808_Abtrain_VXMx1___reg0.1/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -ue -en elastix_Abd -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/VXM/train/Sep16-203808_Abtrain_VXMx1___reg0.1/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
-
-
-
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep28-061053_Abtrain_ALNx1_1xflow__reg2.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ 
-#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/ALN/train/Sep29-052304_Abtrain_ALNx1_1xflow__reg3.0/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ 
+# Elastix and ANTs
+#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -ua -en ants_Abd -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/VXM/train/Sep16-203808_Abtrain_VXMx1___reg0.1/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn
+#python /projects/liver_image_registration/Med_Align_Net/eval/eval.py -ue -en elastix_Abd -c /projects/liver_image_registration/Med_Align_Net/logs/Abdomen/VXM/train/Sep16-203808_Abtrain_VXMx1___reg0.1/model_wts/epoch_100.pth -d /processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json -rdir /processing/l.estacio/AbdomenCTCT/ -sn

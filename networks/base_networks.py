@@ -10,8 +10,8 @@ from   . import hyper_net as hn
 
 from networks.TSM.TransMorph            import CONFIGS as cfg_tsm,   TransMorph as tsm
 from networks.TSM_A.TransMorph_affine   import CONFIGS as cfg_tsm_a, SwinAffine as tsm_a
-from networks.CLMorph.CLM_affine        import CLMAffineStem
-from networks.CLMorph.CLM_elastic       import CLM
+from networks.CLMorph.CLM_affine        import CLMorphAffineStem
+from networks.CLMorph.CLM_elastic       import CLMorph
 
 BASE_NETWORK = ['VTN', 'VXM', 'TSM', 'CLM']
 
@@ -660,7 +660,7 @@ class CLMAffineStem(nn.Module):
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
         self.dim             = dim
-        self.model           = CLMAffineStem(dim=self.dim)
+        self.model           = CLMorphAffineStem(dim=self.dim)
         
     def forward(self, fixed, moving):
         """
@@ -685,7 +685,7 @@ class CLM(nn.Module):
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
         self.dim = dim       = len(im_size)
-        self.model           = CLM(flow_multiplier=self.flow_multiplier)
+        self.model           = CLMorph(flow_multiplier=self.flow_multiplier)
                 
     def forward(self, fixed, moving, theta, return_neg = False, hyp_tensor=None):
         """

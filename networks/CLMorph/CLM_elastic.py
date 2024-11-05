@@ -108,9 +108,9 @@ class SpatialTransformer(nn.Module):
 
 
 
-class CLM(nn.Module):
+class CLMorph(nn.Module):
     """
-    A PyTorch implementation of the CLM network. The network is a UNet.
+    A PyTorch implementation of the CLMorph network. The network is a UNet.
 
     Args:
         im_size (tuple): The size of the input image.
@@ -119,7 +119,7 @@ class CLM(nn.Module):
         in_channels (int): The number of input channels.
     """
     def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=1, hyper_net=None):
-        super(CLM, self).__init__()
+        super(CLMorph, self).__init__()
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
         self.dim = dim       = len(im_size)
@@ -252,7 +252,7 @@ class CLM(nn.Module):
     
 
 if __name__ == "__main__":
-    model = CLM(im_size=(192, 160, 256))
+    model = CLMorph(im_size=(192, 160, 256))
     x   = torch.randn(1, 1, 192, 160, 256)
     y   = torch.randn(1, 1, 192, 160, 256)
     t   = torch.randn(1, 3, 4)

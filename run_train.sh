@@ -8,7 +8,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=30G
-#SBATCH --output=/projects/liver_image_registration/Med_Align_Net/logs/abd_exp_aln1_%j.log   # Standard output and error log
+#SBATCH --output=/projects/liver_image_registration/Med_Align_Net/logs/abd_exp_CLM1_%j.log   # Standard output and error log
 pwd; hostname; date
 
 # Activate conda environment pyenv
@@ -25,7 +25,6 @@ source /home/l.estacio/miniconda3/bin/activate pytorch
 #python /projects/liver_image_registration/Med_Align_Net/train.py -base TSM -reg 0.1
 #python /projects/liver_image_registration/Med_Align_Net/train.py -base TSM -reg 1
 #python /projects/liver_image_registration/Med_Align_Net/train.py -base TSM -reg 10
-#python /projects/liver_image_registration/Med_Align_Net/train.py -base ALN -reg 2  -name_exp 1xflow
-#python /projects/liver_image_registration/Med_Align_Net/train.py -base ALN -reg 3  -name_exp 1xflow
-
-python /projects/liver_image_registration/Med_Align_Net/train.py -base ALN -reg 1  -name_exp 1xflowxAtt
+#python /projects/liver_image_registration/Med_Align_Net/train.py -base CLM -reg 0.1  -name_exp 1xflow
+#python /projects/liver_image_registration/Med_Align_Net/train.py -base CLM -reg 1 -name_exp 1xflow
+python /projects/liver_image_registration/Med_Align_Net/train.py -base CLM -reg 10 -name_exp 1xflow
