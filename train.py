@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser()
 
 # Training settings
 parser.add_argument('-bs', "--batch_size", type=int, default=1)
-parser.add_argument('-e', "--epochs",      type=int, default=105)
+parser.add_argument('-e', "--epochs",      type=int, default=155)
 parser.add_argument("-r", "--round",       type=int, default=60) # A:60 L:20
 parser.add_argument("-v", "--val_steps",   type=int, default=5)
 parser.add_argument("--lr",                type=float, default=1e-4)
@@ -47,18 +47,18 @@ parser.add_argument('-ct', '--continue_training',    action='store_true')
 parser.add_argument('--ctt', '--continue_training_this', type=lambda x: os.path.realpath(x), default=None)
 
 # Dataset settings
-parser.add_argument('-d', '--dataset',     type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json', help='Specifies a data config') #'/processing/l.estacio/LungCT/LungCT_dataset.json'
-parser.add_argument('-rd', '--root_dir',   type=str, default='/processing/l.estacio/AbdomenCTCT/', help='Specifies the root directory where images are stored') #'/processing/l.estacio/LungCT/'
+parser.add_argument('-d', '--dataset',     type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json', help='Specifies a data config') 
+parser.add_argument('-rd', '--root_dir',   type=str, default='/processing/l.estacio/AbdomenCTCT/', help='Specifies the root directory where images are stored') 
 parser.add_argument('-tm', '--task_mode',  type=str, default='train', help='Specifies the task to perform: train|val|test')
 parser.add_argument('-ic', '--in_channel', type=int, default=2,  help='Input channel number')
 parser.add_argument('-g', '--gpu',         type=str, default='', help='GPU to use')
-parser.add_argument('--name',              type=str, default='')
+parser.add_argument('-name_exp', '--name',              type=str, default='')
 parser.add_argument('-is', '--img_size',   type=list, default=[192, 160, 256], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
 
 # Regular loss settings
 parser.add_argument('--ortho', type=float, default=0.1, help="use ortho loss")
 parser.add_argument('--det',   type=float, default=0.1, help="use det loss")
-parser.add_argument('--reg',   type=float, default=1,   help="use reg loss")
+parser.add_argument('-reg','--reg',   type=float, default=0.1,   help="use reg loss")
 
 # Network structure settings
 parser.add_argument('-base', '--base_network', type=str, default='VXM')#
@@ -78,7 +78,7 @@ parser.add_argument('-os', '--only_shrink',     type=lambda x: x.lower() in ['tr
 
 # Volume preserving loss settings
 parser.add_argument('-vp', '--vol_preserve', type=float, default=0, help="use volume-preserving loss")
-parser.add_argument('-st', '--size_type', choices=['organ', 'tumor', 'dynamic'], default='tumor', help='organ means VP works on whole organ, tumor means VP works on tumor region, dynamic means VP has dynamic weight')
+parser.add_argument('-st', '--size_type',    choices=['organ', 'tumor', 'dynamic'], default='tumor', help='organ means VP works on whole organ, tumor means VP works on tumor region, dynamic means VP has dynamic weight')
 parser.add_argument('--ks_norm', default='voxel', choices=['image', 'voxel'])
 parser.add_argument('-w_ksv', '--w_ks_voxel', type=float, default=1, help='Weight for using soft mask method in ks loss')
 
@@ -133,7 +133,7 @@ def main(args):
                        args.masked + (f'thr{args.mask_threshold}' + args.soft_transform + 'bnd' + str(args.boundary_thickness) + 'st{}'.format(1+args.use_2nd_flow) + ('bf' if args.use_bilateral and args.use_2nd_flow else '')
                        if args.mask_threshold>0 and args.masked in ['soft', 'hard']
                        else ''), # params for transforming jacobian
-                       'vp' + str(args.vol_preserve) + 'st' + args.size_type if args.vol_preserve>0 else '' # params for volume preserving loss
+                       'vp' + str(args.vol_preserve) + 'st' + args.size_type if args.vol_preserve>0 else '' + 'reg' + str(args.reg) # params for volume preserving loss
                        ])
     print('Current Run ID:', run_id)
     

@@ -28,22 +28,20 @@ from tools.visualization import *
 from metrics.losses import compute_initial_deformed_TRE
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/Abdomen/VXM/train/Jul31-053533_Abtrain_VXMx1___/model_wts/epoch_100.pth')#'/projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_104.pth', help='Specifies a previous checkpoint to load')
-parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/lung/ALN_20/train/Aug08-194443_lutrain_ALNx1___/model_wts/epoch_100.pth')#'/projects/disentanglement_methods/Med_Align_Net/logs/lung/VTN/train/Jul10-004547_lutrain_VTNx3___/model_wts/epoch_104.pth', help='Specifies a previous checkpoint to load')
+parser.add_argument('-c', '--checkpoint',   type=str, default='/projects/disentanglement_methods/Med_Align_Net/logs/Abdomen/VXM/train/Jul31-053533_Abtrain_VXMx1___/model_wts/epoch_100.pth', help='Specifies a previous checkpoint to load')
 parser.add_argument('-g', '--gpu',          type=str, default='0',  help='Specifies gpu device(s)')
-#parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json')#'/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
-parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/LungCT/LungCT_dataset.json', help='Specifies a data config')
-#parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/AbdomenCTCT/')#'/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
-parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/LungCT/', help='Specifies the root directory where images are stored')
+parser.add_argument('-d', '--dataset',      type=str, default='/processing/l.estacio/AbdomenCTCT/AbdomenCTCT_dataset.json', help='Specifies a data config')
+parser.add_argument('-rdir', '--root_dir',    type=str, default='/processing/l.estacio/AbdomenCTCT/', help='Specifies the root directory where images are stored')
 parser.add_argument('-ndir', '--nii_dir',    type=str, default='/data/groups/beets-tan/l.estacio/Med_Align_Net/', help='Directory where .nii.gz wil be stored')
 parser.add_argument('-tm', '--task_mode',   type=str, default='test', help='Specifies the task to perform: train|val|test')
-parser.add_argument('-is', '--img_size',   type=list, default=[192, 192, 208], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
+parser.add_argument('-is', '--img_size',   type=list, default=[192, 160, 256], help='Image Size: [192, 192, 208] -> lung, [192, 160, 256] abdomen')
 parser.add_argument('-vs', '--voxel_spacing', type=list, default=[1.75, 1.25, 1.75], help='specifies the target voxel spacing that the flow should have to compute the TRE')
 parser.add_argument('--batch_size',         type=int, default=1,   help='Size of minibatch')
 parser.add_argument('-s','--save_pkl',      action='store_true', help='Save the results as a pkl file')
 parser.add_argument('-sn','--save_nii',      action='store_true', help='Save the results as a nii.gz format')
 parser.add_argument('-rd', '--region_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dice for each region')
-parser.add_argument('-sd', '--surf_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
+parser.add_argument('-sd', '--surf_dist',   default=True, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate dist for each surface')
+parser.add_argument('-od', '--original_dice', default=True,  type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate original dice for each region')
 parser.add_argument('-tre', '--tre_dist',   default=False, type=lambda x: x.lower() in ['true', '1', 't', 'y', 'yes'], help='If calculate TRE dist using keypoints')
 parser.add_argument('-ua','--use_ants',     action='store_true', help='if use ants to register')
 parser.add_argument('-ue','--use_elastix',   action='store_true', help='if use elastix to register')
@@ -81,7 +79,7 @@ def main(args):
         cfg = json.load(f)
         image_size = cfg.get('image_size', args.img_size)
         image_type = cfg.get('image_type', None)
-        segmentation_class_value=cfg.get('segmentation_class_value', {'unknown':1})
+        segmentation_class_value=cfg.get('segmentation_class_value', {'abd_liver':1})
         
     # build dataset
     val_dataset = Data(args.dataset, root_dir=args.root_dir, mode=args.task_mode)
@@ -121,7 +119,6 @@ def main(args):
     if cfg_training.masked in ['soft', 'hard']:
         # suppose the training dataset has the same data type of eval dataset
         data_type      = 'Abdomen' if 'Abdomen' in cfg_training.dataset else 'lung'
-        #data_type = 'liver' if 'liver' in cfg_training.dataset else 'lung'
         cfg_training.data_type = data_type
         build_precompute(model, val_dataset, cfg_training)
 
@@ -151,49 +148,83 @@ def main(args):
                 data[k] = [i for l,i in zip(idx, data[k]) if l]
             else: data[k] = data[k][idx,...]
         return data
+    
+    def to_cuda(tensor, is_numpy=True):
+        return torch.from_numpy(tensor).float().cuda() if is_numpy else tensor.float().cuda()
+
+    def move_to_cuda(*tensors):
+        return [tensor.cuda() for tensor in tensors]
 
     #val_loader_list = list(val_loader)
     for iteration, data in tqdm(enumerate(val_loader)):
-        seg1, seg2 = data['segmentation1'], data['segmentation2']
-        seg1, seg2 = data['segmentation1'].float(), data['segmentation2'].float()
-
+        
+        seg1, seg2    = data['segmentation1'].float(), data['segmentation2'].float()
         fixed, moving = data['voxel1'], data['voxel2']
         id1, id2      = data['img1_path'], data['img2_path']
-        if args.tre_dist:
-            kp1, kp2      = data['kps1'], data['kps2']
-        
-        if args.use_ants:
-            pred                      = ants_pred(fixed, moving, seg2)
-            w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
-            w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
-            warped                    = [torch.from_numpy(warped).float().cuda()]
-            agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
-        elif args.use_elastix:
-            
-            path_to_save_params       = './eval/results/{}/pair_{}/'.format(args.exp_name, str(iteration))
-            #import pdb; pdb.set_trace()
-            pred                      = elastix_pred(fixed, moving, seg2, path_to_save_params)
-            w_seg2, warped, agg_flows = pred['w_seg2'], pred['warped'], pred['flow']
-            w_seg2                    = torch.from_numpy(w_seg2).float().cuda()
-            warped                    = [torch.from_numpy(warped).float().cuda()]
-            agg_flows                 = [torch.from_numpy(agg_flows).float().cuda()]
-        else:
-            with torch.no_grad():
-                fixed  = fixed.cuda()
-                moving = moving.cuda()
-                seg2 = seg2.cuda()
-                if args.tre_dist:
-                    kp1  = kp1.cuda()
-                    kp2  = kp2.cuda()
-                if cfg_training.masked  in ['soft' , 'hard']:
-                    input_seg, compute_mask = model.pre_register(fixed, moving, seg2, training=False, cfg=cfg_training)
-                    moving_                 = torch.cat([moving, input_seg.float().cuda()], dim=1)
-                else:
-                    moving_                              = moving
-                warped_, flows, agg_flows, affine_params = model(fixed, moving_, return_affine=True,)
 
+        if args.tre_dist:
+            kp1, kp2 = data['kps1'], data['kps2']
+
+        if args.use_ants:
+            t_start_inference = time.time()
+            pred = ants_pred(fixed, moving, seg2)
+            
+            t_end_inference = time.time()
+            duration_inference = t_end_inference - t_start_inference 
+            key = 'time'
+            if key not in results:
+                results[key] = []
+                metric_keys.append(key)
+            results[key].append(duration_inference)
+            
+        elif args.use_elastix:
+            t_start_inference = time.time()
+            
+            path_to_save_params = f'./eval/results/{args.exp_name}/pair_{iteration}/'
+            pred = elastix_pred(fixed, moving, seg2, path_to_save_params)
+            
+            t_end_inference = time.time()
+            duration_inference = t_end_inference - t_start_inference 
+            key = 'time'
+            if key not in results:
+                results[key] = []
+                metric_keys.append(key)
+            results[key].append(duration_inference)
+            
+
+        if args.use_ants or args.use_elastix:
+            w_seg2    = to_cuda(pred['w_seg2'])
+            warped    = [to_cuda(pred['warped'])]
+            agg_flows = [to_cuda(pred['flow'])]
+
+        else:
+            t_start_inference = time.time()
+            
+            with torch.no_grad():
+                fixed, moving, seg2 = move_to_cuda(fixed, moving, seg2)
+                if args.tre_dist:
+                    kp1, kp2 = move_to_cuda(kp1, kp2)
+                if cfg_training.masked in {'soft', 'hard'}:
+                    input_seg, compute_mask = model.pre_register(fixed, moving, seg2, training=False, cfg=cfg_training)
+                    moving_ = torch.cat([moving, input_seg.float().cuda()], dim=1)
+                else:
+                    moving_ = moving
+
+                warped_, flows, agg_flows, affine_params = model(fixed, moving_, return_affine=True)
             warped = [model.reconstruction(moving, agg_flows[-1].float())]
-            w_seg2 =  model.reconstruction(seg2.float(), agg_flows[-1].float(), mode='nearest')
+            w_seg2 = model.reconstruction(seg2.float(), agg_flows[-1].float(), mode='nearest')
+
+            t_end_inference = time.time()
+            duration_inference = t_end_inference - t_start_inference 
+            #print(f"Duration Inference: {duration_inference} seconds")
+            #import pdb; pdb.set_trace()
+            key = 'time'
+            if key not in results:
+                results[key] = []
+                metric_keys.append(key)
+            results[key].append(duration_inference)
+            
+
         
         if args.save_pkl:
             # now we just save the last flow
@@ -220,8 +251,7 @@ def main(args):
             out['warped'] = warped[-1].detach().cpu()
             out['flow']   = agg_flows[-1].detach().cpu()
             out['wseg2']  = w_seg2.detach().cpu()
-            path_to_save = folder_to_save_nii + str(iteration) + '_'
-            #import pdb; pdb.set_trace()
+            path_to_save = f"{folder_to_save_nii}{iteration}_"
             save_outputs_as_nii_format(out, path_to_save)
             
             # results["id1"].extend(id1)
@@ -252,7 +282,7 @@ def main(args):
             results[key].extend(dice.cpu().numpy())
             dices.append(dice.cpu().numpy())
             # add original dice
-            if False:
+            if args.original_dice:
                 original_dice, _ = dice_jaccard(sseg1, sseg2)
                 key = 'o_dice_{}'.format(k)
                 if key not in results:
@@ -299,7 +329,7 @@ def main(args):
         results['id2'].extend(id2)
 
         # add J>0 ratio, and std |J|
-        if not args.use_ants:
+        if  not args.use_ants:
             flow = agg_flows[-1]
             jacs = jacobian_det(flow, return_det=True)
             if 'std_jac' not in results:
@@ -329,10 +359,10 @@ def main(args):
         results['l1l2_ratio'].extend((seg1>.5).sum(dim=(1,2,3,4)).float() / (seg2>.5).sum(dim=(1,2,3,4)).float().cpu().numpy())
         t_end_eval = time.time()
 
-        # print('infer time: {:.2f}s, eval time: {:.2f}s'.format(t_begin_eval-t_infer, t_end_eval-t_begin_eval))
+        #print('infer time: {:.2f}s, eval time: {:.2f}s'.format(t_begin_eval-t_infer, t_end_eval-t_begin_eval))
 
         key = 'to_ratio'
-        k2 = '{}_ratio'.format(cfg_training.get('data_type', 'liver' if 'liver' in args.checkpoint else 'lung'))
+        k2  = '{}_ratio'.format(cfg_training.get('data_type', 'liver' if 'liver' in args.checkpoint else 'lung'))
         if 'tumor_ratio'  in results and k2 in results:
             if key not in results:
                 results[key] = []

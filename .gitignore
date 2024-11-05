@@ -5,3 +5,6 @@ notebooks/test_parameters.ipynb
 logs/
 eval/__pycache__/
 eval/results/
+notebooks/figures_liver
+notebooks/figures_lung
+notebooks/eval
