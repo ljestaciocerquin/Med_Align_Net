@@ -8,3 +8,5 @@ eval/results/
 notebooks/figures_liver
 notebooks/figures_lung
 notebooks/eval
+temp/
+check_models.py
