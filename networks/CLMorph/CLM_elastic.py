@@ -108,9 +108,9 @@ class SpatialTransformer(nn.Module):
 
 
 
-class AligNet(nn.Module):
+class CLM(nn.Module):
     """
-    A PyTorch implementation of the VTN network. The network is a UNet.
+    A PyTorch implementation of the CLM network. The network is a UNet.
 
     Args:
         im_size (tuple): The size of the input image.
@@ -119,7 +119,7 @@ class AligNet(nn.Module):
         in_channels (int): The number of input channels.
     """
     def __init__(self, im_size=(128, 128, 128), flow_multiplier=1., channels=16, in_channels=1, hyper_net=None):
-        super(AligNet, self).__init__()
+        super(CLM, self).__init__()
         self.flow_multiplier = flow_multiplier
         self.channels        = channels
         self.dim = dim       = len(im_size)
@@ -209,22 +209,9 @@ class AligNet(nn.Module):
         m6   = self.conv6(m5_1)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
         m6_1 = self.conv6_1(m6)                             # 512 x 8 x 8           # 512 x   3 x   3 x   4
         
-        # Aligning each feature map of the moving image
-        m1_f = self.create_flow(theta, m1.size())
-        m1_a = self.reconstruction(m1, m1_f)
-        m2_f = self.create_flow(theta, m2.size())
-        m2_a = self.reconstruction(m2, m2_f)
-        m3_f = self.create_flow(theta, m3_1.size())
-        m3_a = self.reconstruction(m3_1, m3_f)
-        m4_f = self.create_flow(theta, m4_1.size())
-        m4_a = self.reconstruction(m4_1, m4_f)
-        m5_f = self.create_flow(theta, m5_1.size())
-        m5_a = self.reconstruction(m5_1, m5_f)
-        m6_f = self.create_flow(theta, m6_1.size())
-        m6_a = self.reconstruction(m6_1, m6_f)
-        
+               
         # Concatenation of fixed and moving 
-        xy   = torch.cat((f6_1, m6_a), dim=1)                                       # 1024 x   3 x   3 x   4
+        xy   = torch.cat((f6_1, m6_1), dim=1)                                       # 1024 x   3 x   3 x   4
         pred6      = self.pred6(xy)                               # 2 x 8 x 8         #   3 x 3 x 3 x 4
         upsamp6to5 = self.upsamp6to5(pred6)                         # 2 x 16 x 16     #   3 x 6 x 6 x 8
         deconv5    = self.deconv5(xy)                             # 256 x 16 x 16     # 256 x 6 x 6 x 8
@@ -232,46 +219,41 @@ class AligNet(nn.Module):
         
         # Funtion to get the same size in dimension 4 
         # in order to be able to concat the tensors. 
-        #tensors    = get_same_dim_tensors([f5_1, m5_a, deconv5, upsamp6to5], m5_a.size(-1), -1)
-        tensors    = get_same_dim_tensors([f5_1, m5_a, deconv5, upsamp6to5], m5_1.size(-2), -2)
+        #tensors    = get_same_dim_tensors([f5_1, m5_1, deconv5, upsamp6to5], m5_1.size(-1), -1)  # Lung
+        tensors    = get_same_dim_tensors([f5_1, m5_1, deconv5, upsamp6to5], m5_1.size(-2), -2)   # Abdomen
         concat5    = torch.cat(tensors, dim=1)                      # 514 x 16 x 16     # 771 x 6 x 6 x 7
 
         
         pred5      = self.pred5(concat5)                            # 2 x 16 x 16       #  3 x 6 x 6 x 7
         upsamp5to4 = self.upsamp5to4(pred5)                         # 2 x 32 x 32       #  3 x 12 x 12 x 14
         deconv4    = self.deconv4(concat5)                          # 2 x 32 x 32       #  128 x 12 x 12 x 14
-        #tensors    = get_same_dim_tensors([f4_1, m4_a, deconv4, upsamp5to4], m4_a.size(-1), -1)
-        tensors    = get_same_dim_tensors([f4_1, m4_a, deconv4, upsamp5to4], m4_1.size(-2), -2)
+        #tensors    = get_same_dim_tensors([f4_1, m4_1, deconv4, upsamp5to4], m4_1.size(-1), -1) # Lung
+        tensors    = get_same_dim_tensors([f4_1, m4_1, deconv4, upsamp5to4], m4_1.size(-2), -2)  # Abdomen
         concat4    = torch.cat(tensors, dim=1)                      # 258 x 32 x 32     # 387 x 12 x 12 x 13
 
         pred4      = self.pred4(concat4)                            # 2 x 32 x 32       # 3 x 12 x 12 x 13
         upsamp4to3 = self.upsamp4to3(pred4)                         # 2 x 64 x 64       # 3 x 24 x 24 x 26
         deconv3    = self.deconv3(concat4)                          # 64 x 64 x 64      # 64 x 24 x 24 x 26
-        concat3    = torch.cat([f3_1, m3_a, deconv3, upsamp4to3], dim=1)  # 130 x 64 x 64 # 195 x 24 x 24 x 26
-
+        concat3    = torch.cat([f3_1, m3_1, deconv3, upsamp4to3], dim=1)  # 130 x 64 x 64 # 195 x 24 x 24 x 26
         
         pred3      = self.pred3(concat3)                            # 2 x 63 x 64           # 3 x 24 x 24 x 26
         upsamp3to2 = self.upsamp3to2(pred3)                         # 2 x 128 x 128         # 3 x 48 x 48 x 52
         deconv2    = self.deconv2(concat3)                          # 32 x 128 x 128        # 32 x 48 x 48 x 52
-        concat2    = torch.cat([f2, m2_a, deconv2, upsamp3to2], dim=1)    # 66 x 128 x 128    # 99 x 48 x 48 x 52
-        
-        #import pdb; 
-        #pdb.set_trace()
+        concat2    = torch.cat([f2, m2, deconv2, upsamp3to2], dim=1)    # 66 x 128 x 128    # 99 x 48 x 48 x 52
         
         pred2      = self.pred2(concat2)                            # 2 x 128 x 128         # 3 x 48 x 48 x 52
         upsamp2to1 = self.upsamp2to1(pred2)                         # 2 x 256 x 256         # 3 x 96 x 96 x 104
         deconv1    = self.deconv1(concat2)                          # 16 x 256 x 256        # 16 x 96 x 96 x 104
-        concat1    = torch.cat([f1, m1_a, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256    # 51 x 96 x 96 x 104
+        concat1    = torch.cat([f1, m1, deconv1, upsamp2to1], dim=1)    # 34 x 256 x 256    # 51 x 96 x 96 x 104
 
         pred0      = self.pred0(concat1)                            # 2 x 512 x 512
         #import pdb; pdb.set_trace()
-        #return pred0 * 20 * self.flow_multiplier                    # why the 20?
-        return pred0 * self.flow_multiplier                    # why the 20?
+        return pred0 * self.flow_multiplier                    
     
 
 if __name__ == "__main__":
-    model = AligNet(im_size=(192, 192, 208))
-    x   = torch.randn(1, 1, 192, 192, 208)
+    model = CLM(im_size=(192, 160, 256))
+    x   = torch.randn(1, 1, 192, 160, 256)
     y   = torch.randn(1, 1, 192, 160, 256)
     t   = torch.randn(1, 3, 4)
     out = model(x, x, t)
