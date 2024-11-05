@@ -1,8 +1,8 @@
-<h1 align="center">Med_Align_Net</h1>
+<h1 align="center">Medical Alignment Networks</h1>
 
 ## Introduction
 
-This repository contains the implementation for the alignment of medical images. The Medical Alignment Network (Med_Align_Net) is proposed to align pairs of images of the same patient. Specifically, a moving image is aligned both affinely and deformably to a fixed image.
+This repository provides an implementation for the alignment of medical images. Medical Alignment Networks are designed to align pairs of images, whether they are from the same patient or different patients. Specifically, a moving image is aligned to a fixed image using both affine and deformable transformations.
 
 ## Datasets
 
