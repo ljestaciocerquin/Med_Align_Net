@@ -24,6 +24,7 @@ In addition to our method, you can use the following baseline models to train an
 - VoxelMorph (VXM)
 - Volume Tweening Network (VTN)
 - TransMorph (TSM)
+- Contrastive Registration for Unsupervised Medical Image Segmentation (CLMorph) 
 - Elastix
 - ANTs
 
@@ -38,7 +39,7 @@ To train our model, you can use the following command:
 python train.py -d datasets/LungCT_dataset.json 
 ```
 
-To train the baseline models, specify the appropriate base name (VXM, VTN, or TSM). For example, to train the VoxelMorph model, use the following command:
+To train the baseline models, specify the appropriate base name (VXM, VTN, TSM, or CLM). For example, to train the VoxelMorph model, use the following command:
 
 ```
 python train.py -d datasets/LungCT_dataset.json --name vxm -base VXM
