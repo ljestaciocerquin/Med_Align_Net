@@ -4,6 +4,13 @@
 
 This repository provides an implementation for the alignment of medical images. Medical Alignment Networks are designed to align pairs of images, whether they are from the same patient or different patients. Specifically, a moving image is aligned to a fixed image using both affine and deformable transformations.
 
+
+⚠️ **Important**
+This project is actively progressing, with ongoing refinements to the code. We are happy to hear any suggestions or feedback you might have. Don’t hesitate to open an issue or submit a pull request!
+
+
+
+
 ## Datasets
 
 We use two evaluation datasets:
@@ -30,8 +37,7 @@ In addition to our method, you can use the following baseline models to train an
 
 Note: Elastix and ANTs are used only for evaluation with their default configurations.
 
-⚠️ **Important**
-This project is actively progressing, with ongoing refinements to the code. We are happy to hear any suggestions or feedback you might have. Don’t hesitate to open an issue or submit a pull request!
+
 
 
 
