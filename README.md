@@ -16,7 +16,7 @@ The Learn2Reg dataset can be downloaded from the following link:
 - https://cloud.imi.uni-luebeck.de/s/o7LyCbJCie8fQ3B
 
 
-[!IMPORTANT]
+⚠️ **Important**
 This project is actively progressing, with ongoing refinements to the code. We are happy to hear any suggestions or feedback you might have. Don’t hesitate to open an issue or submit a pull request!
 
 ## Models
